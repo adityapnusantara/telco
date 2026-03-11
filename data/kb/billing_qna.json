@@ -1,0 +1,26 @@
+[
+  {
+    "question": "When are bills generated?",
+    "answer": "Bills are generated on the 1st of every month.",
+    "source": "billing_policy.md",
+    "category": "billing"
+  },
+  {
+    "question": "What is the late payment fee?",
+    "answer": "A late payment fee of IDR 50,000 applies after 14 days overdue.",
+    "source": "billing_policy.md",
+    "category": "billing"
+  },
+  {
+    "question": "How can I request a billing dispute?",
+    "answer": "Customers can request a billing dispute within 30 days of the invoice date.",
+    "source": "billing_policy.md",
+    "category": "billing"
+  },
+  {
+    "question": "How do I enroll in auto-pay?",
+    "answer": "Auto-pay enrollment is available via the MyTelco app.",
+    "source": "billing_policy.md",
+    "category": "billing"
+  }
+]
