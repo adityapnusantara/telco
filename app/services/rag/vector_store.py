@@ -1,7 +1,8 @@
 from langchain_qdrant import QdrantVectorStore
 from langchain_openai import OpenAIEmbeddings
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
+from qdrant_client.models import Distance, VectorParams
+from app.core.config import config
 
 
 class VectorStore:
@@ -10,7 +11,10 @@ class VectorStore:
     def __init__(self, qdrant_url: str, qdrant_api_key: str, collection_name: str):
         self._client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key)
         self._collection_name = collection_name
-        self._embeddings = OpenAIEmbeddings(model="text-embedding-3-small", dimensions=512)
+        self._embeddings = OpenAIEmbeddings(
+            model=config.EMBEDDING_MODEL,
+            dimensions=config.EMBEDDING_DIMENSION
+        )
 
         # Create collection if it doesn't exist
         self._ensure_collection_exists()
@@ -30,9 +34,11 @@ class VectorStore:
         except (UnexpectedResponse, Exception):
             # Collection doesn't exist, create it
             print(f"Creating collection: {self._collection_name}")
+            print(f"Embedding model: {config.EMBEDDING_MODEL}")
+            print(f"Embedding dimension: {config.EMBEDDING_DIMENSION}")
             self._client.create_collection(
                 collection_name=self._collection_name,
-                vectors_config=VectorParams(size=512, distance=Distance.COSINE)
+                vectors_config=VectorParams(size=config.EMBEDDING_DIMENSION, distance=Distance.COSINE)
             )
             print(f"✅ Collection created successfully")
 

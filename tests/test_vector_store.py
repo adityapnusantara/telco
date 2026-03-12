@@ -34,7 +34,7 @@ def test_vector_store_init(mock_qdrant_client, mock_embeddings, mock_vector_stor
         api_key=config.QDRANT_API_KEY
     )
     mock_embeddings.assert_called_once_with(
-        model="text-embedding-3-small",
-        dimensions=512
+        model=config.EMBEDDING_MODEL,
+        dimensions=config.EMBEDDING_DIMENSION
     )
     mock_vector_store.assert_called_once()
