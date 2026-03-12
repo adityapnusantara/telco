@@ -56,11 +56,11 @@ poetry run pytest -x
 ### RAG Pipeline Flow
 
 ```
-User Request → FastAPI /chat → ChatService
+User Request → FastAPI /chat → ChatService (via Depends)
     ↓
-LangChain Agent (create_agent)
+Agent class (invoke method)
     ↓
-Retriever Tool → Qdrant Vector Store (semantic search)
+RetrieverTool → VectorStore → Qdrant (semantic search)
     ↓
 Langfuse CallbackHandler (tracing)
     ↓
@@ -69,18 +69,18 @@ Response with escalate flag based on keywords
 
 ### Service Architecture
 
-The application is organized into three main service layers:
+The application uses **class-based services with explicit dependency injection**:
 
 **LLM Services (`app/services/llm/`)**
-- `agent.py` - LangChain `create_agent` with GPT-4o, wraps retriever tool
-- `callbacks.py` - Langfuse `CallbackHandler` singleton for tracing
-- `chat.py` - Chat orchestration, escalation detection via keyword matching
+- `agent.py` - `Agent` class wrapping LangChain `create_agent` with GPT-4o
+- `callbacks.py` - `CallbackHandler` class wrapping Langfuse tracing
+- `chat.py` - `ChatService` class for orchestration and escalation detection
 
 **RAG Services (`app/services/rag/`)**
+- `vector_store.py` - `VectorStore` class wrapping Qdrant client and embeddings
+- `retriever.py` - `RetrieverTool` class wrapping LangChain @tool for knowledge base search
 - `models.py` - `QNADocument` Pydantic model (question, answer, source, category)
 - `knowledge_base.py` - Loads Q&A documents from JSON files in `data/kb/`
-- `vector_store.py` - Qdrant Cloud client, `text-embedding-3-small` (512 dims)
-- `retriever.py` - LangChain `@tool` wrapped retriever for knowledge base search
 - `ingestion.py` - Converts Q&A pairs to LangChain Documents, stores in vector store
 
 **Configuration & Integration**
@@ -88,11 +88,38 @@ The application is organized into three main service layers:
 - `app/prompts/langfuse.py` - Fetches system prompt from Langfuse Prompt Management
 - `app/api/models.py` - Pydantic request/response models for `/chat` endpoint
 
+### Lifecycle Management
+
+**Startup Event (`app/main.py`)**
+```python
+@app.on_event("startup")
+async def startup_event():
+    # Services created in dependency order
+    app.state.vector_store = VectorStore(...)
+    app.state.callback_handler = CallbackHandler()
+    retriever_tool = RetrieverTool(vector_store=app.state.vector_store)
+    app.state.agent = Agent(vector_store=app.state.vector_store, retriever_tool=retriever_tool.tool)
+    app.state.chat_service = ChatService(agent=app.state.agent, handler=app.state.callback_handler)
+```
+
+**Route Dependency Injection (`app/api/routes/chat.py`)**
+```python
+def get_chat_service(request: Request) -> ChatService:
+    service = request.app.state.chat_service
+    if service is None:
+        raise HTTPException(status_code=503, detail="Services not initialized")
+    return service
+
+@router.post("/chat")
+async def create_chat(request: ChatRequest, service: ChatService = Depends(get_chat_service)):
+    return service.chat(...)
+```
+
 ### LangChain Integration
 
 Uses `create_agent` from `langchain.agents` (LangChain v1.2.11):
 - Model: `ChatOpenAI(model="gpt-4o", temperature=0)`
-- Tools: Single `search_knowledge_base` tool (retriever)
+- Tools: Single `search_knowledge_base` tool (from RetrieverTool)
 - System prompt: Fetched from Langfuse, compiled with variables
 
 ### Knowledge Base Format
@@ -106,7 +133,7 @@ Each document has: `question`, `answer`, `source`, `category`
 
 ### Escalation Logic
 
-The `_should_escalate()` function checks for these keywords in responses:
+The `ChatService._should_escalate()` method checks for these keywords in responses:
 - "cannot help", "don't know", "unable to assist"
 - "speak to a human", "transfer to agent", "escalate"
 
@@ -120,10 +147,11 @@ When triggered, sets `escalate: true` in ChatResponse.
 
 ### Important Implementation Notes
 
-- Singleton pattern used for agent, vector store, and callback handler
-- Q&A pairs used as chunks instead of text splitting - each is self-contained
-- System prompt variables: `company_name` (default: "MyTelco"), `escalation_contact` (default: "call 123 or use the MyTelco app")
-- All tracing automatically logged to Langfuse via CallbackHandler passed to agent.invoke()
+- **No global singletons** - All services are class-based with explicit dependency injection
+- **app.state lifecycle** - Services created at startup, stored in app.state, injected via Depends()
+- **Q&A pairs as chunks** - Each pair is self-contained, no text splitting needed
+- **System prompt variables**: `company_name` (default: "MyTelco"), `escalation_contact` (default: "call 123 or use the MyTelco app")
+- **Tracing**: All requests automatically logged to Langfuse via CallbackHandler
 
 ### API Endpoints
 

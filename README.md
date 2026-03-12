@@ -156,16 +156,22 @@ Instead of using `RecursiveCharacterTextSplitter`, we use **Q&A pairs** as our c
 ```
 telco/
 ├── app/
-│   ├── main.py              # FastAPI application
+│   ├── main.py              # FastAPI application with startup/shutdown events
 │   ├── api/
+│   │   ├── models.py        # Pydantic request/response models
 │   │   └── routes/
-│   │       └── chat.py      # /chat endpoint
+│   │       └── chat.py      # /chat endpoint with Depends injection
 │   ├── services/
 │   │   ├── llm/
-│   │   │   └── agent.py     # LangChain agent
+│   │   │   ├── agent.py     # Agent class with LangChain create_agent
+│   │   │   ├── callbacks.py # CallbackHandler class (Langfuse tracing)
+│   │   │   └── chat.py      # ChatService class (orchestration)
 │   │   └── rag/
-│   │       ├── retriever.py # RAG retrieval
-│   │       └── knowledge_base.py
+│   │       ├── vector_store.py  # VectorStore class (Qdrant wrapper)
+│   │       ├── retriever.py     # RetrieverTool class (search tool)
+│   │       ├── models.py        # QNADocument Pydantic model
+│   │       ├── knowledge_base.py
+│   │       └── ingestion.py
 │   ├── core/
 │   │   └── config.py        # Configuration
 │   └── prompts/
@@ -178,6 +184,22 @@ telco/
 ├── pyproject.toml
 └── README.md
 ```
+
+## Architecture
+
+The application uses **class-based services with dependency injection**:
+
+- **VectorStore** - Qdrant vector store wrapper with explicit initialization
+- **CallbackHandler** - Langfuse tracing handler wrapper
+- **RetrieverTool** - Knowledge base search tool with VectorStore dependency
+- **Agent** - LangChain agent wrapper with VectorStore and RetrieverTool dependencies
+- **ChatService** - Chat orchestration with Agent and CallbackHandler dependencies
+
+**Lifecycle Management:**
+- All services are initialized during FastAPI startup event
+- Services are stored in `app.state` for application-wide access
+- Routes use FastAPI's `Depends()` for dependency injection
+- No global singleton functions
 
 ## Tech Stack
 
