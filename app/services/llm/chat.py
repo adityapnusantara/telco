@@ -1,4 +1,3 @@
-import warnings
 from pydantic import BaseModel
 from typing import Optional
 from .agent import Agent
@@ -48,16 +47,3 @@ class ChatService:
         ]
         reply_lower = reply.lower()
         return any(indicator in reply_lower for indicator in escalation_indicators)
-
-
-# Legacy function for backward compatibility (will be removed after migration)
-def chat(message: str, conversation_history: list[dict], conversation_id: Optional[str] = None) -> ChatResponse:
-    """Deprecated: Use ChatService class instead"""
-    warnings.warn("Use ChatService class instead", DeprecationWarning, stacklevel=2)
-    raise NotImplementedError("Use ChatService class instead")
-
-
-def _should_escalate(reply: str) -> bool:
-    """Deprecated: Use ChatService._should_escalate method instead"""
-    warnings.warn("Use ChatService._should_escalate method instead", DeprecationWarning, stacklevel=2)
-    raise NotImplementedError("Use ChatService class instead")
