@@ -73,20 +73,33 @@ class ChatService:
                         args = call.get("args", {})
                         # The source names are in the tool results, not args
                         # We need to look at ToolMessage responses
-            elif hasattr(msg, "content") and isinstance(msg.content, list):
-                # Tool results come back as content lists
-                for content_item in msg.content:
-                    if isinstance(content_item, dict) and "text" in content_item:
-                        # Parse source from formatted response: "[category - source]: content"
-                        text = content_item["text"]
-                        # Match pattern like "[billing - billing_qna.json]: ..."
-                        pattern = r'\[([^\]]+?-([^\]]+?))\]:'
-                        matches = re.findall(pattern, text)
-                        for match in matches:
-                            if len(match) >= 2:
-                                source = match[1]  # Second capture group is the source filename
-                                if source not in sources:
-                                    sources.append(source)
+            elif hasattr(msg, "content"):
+                # Handle string content (ToolMessage can have string content)
+                if isinstance(msg.content, str):
+                    # Parse source from formatted response: "[category - source]: content"
+                    text = msg.content
+                    # Match pattern like "[billing - billing_qna.json]: ..."
+                    pattern = r'\[([^\]]+?-([^\]]+?))\]:'
+                    matches = re.findall(pattern, text)
+                    for match in matches:
+                        if len(match) >= 2:
+                            source = match[1].strip()  # Strip whitespace from source filename
+                            if source not in sources:
+                                sources.append(source)
+                elif isinstance(msg.content, list):
+                    # Tool results come back as content lists
+                    for content_item in msg.content:
+                        if isinstance(content_item, dict) and "text" in content_item:
+                            # Parse source from formatted response: "[category - source]: content"
+                            text = content_item["text"]
+                            # Match pattern like "[billing - billing_qna.json]: ..."
+                            pattern = r'\[([^\]]+?-([^\]]+?))\]:'
+                            matches = re.findall(pattern, text)
+                            for match in matches:
+                                if len(match) >= 2:
+                                    source = match[1].strip()  # Strip whitespace from source filename
+                                    if source not in sources:
+                                        sources.append(source)
 
         return sources if sources else None
 
