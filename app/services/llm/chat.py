@@ -43,16 +43,38 @@ class ChatService:
 
         result = self.agent.invoke({"messages": lc_messages}, config=config)
 
-        # Extract reply from result (dict with "messages" key)
-        messages_list = result["messages"]
-        last_message = messages_list[-1]
-        reply = last_message.content
+        # Extract structured response
+        structured = result.get("structured_response")
+        if structured is None:
+            # Fallback handling if structured_response is missing
+            return self._fallback_response(result)
 
-        escalate = self._should_escalate(reply)
+        # Extract sources from tool calls
+        sources = self._extract_sources(result)
 
         return ChatResponse(
+            reply=structured.reply,
+            escalate=structured.escalate,
+            confidence_score=structured.confidence_score,
+            sources=sources
+        )
+
+    def _extract_sources(self, result: dict) -> Optional[list[str]]:
+        """Extract source document names from retriever tool calls"""
+        # TODO: Will be implemented in Task 6
+        return None
+
+    def _fallback_response(self, result: dict) -> ChatResponse:
+        """Fallback response if structured_response is missing"""
+        # TODO: Will be implemented in Task 7
+        messages_list = result["messages"]
+        last_message = messages_list[-1]
+        reply = last_message.content if hasattr(last_message, 'content') else str(last_message)
+        return ChatResponse(
             reply=reply,
-            escalate=escalate
+            escalate=False,
+            confidence_score=None,
+            sources=None
         )
 
     def _should_escalate(self, reply: str) -> bool:
