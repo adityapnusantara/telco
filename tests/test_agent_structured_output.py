@@ -49,6 +49,8 @@ def test_agent_has_response_format_configured(monkeypatch):
 
     # Mock the dependencies
     mock_vector_store = MagicMock(spec=VectorStore)
+    mock_retriever_tool = MagicMock()
+    mock_retriever_tool.tool = MagicMock()
     mock_llm = MagicMock()
     mock_system_prompt = "Test prompt"
 
@@ -63,7 +65,7 @@ def test_agent_has_response_format_configured(monkeypatch):
         from app.services.llm.agent import Agent
 
         # Create agent
-        agent = Agent(vector_store=mock_vector_store)
+        agent = Agent(vector_store=mock_vector_store, retriever_tool=mock_retriever_tool)
 
         # Verify create_agent was called with response_format
         mock_create_agent.assert_called_once()

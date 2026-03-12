@@ -8,6 +8,9 @@ from app.services.rag.vector_store import VectorStore
 def test_agent_init():
     """Test Agent class initialization"""
     mock_vector_store = Mock(spec=VectorStore)
+    mock_retriever_tool = Mock()
+    mock_retriever_tool.tool = Mock()
+
     with patch('app.services.llm.agent.ChatOpenAI') as mock_llm_class, \
          patch('app.services.llm.agent.get_system_prompt') as mock_prompt, \
          patch('app.services.llm.agent.create_agent') as mock_create_agent:
@@ -18,7 +21,7 @@ def test_agent_init():
         mock_agent_instance = MagicMock()
         mock_create_agent.return_value = mock_agent_instance
 
-        agent = Agent(vector_store=mock_vector_store)
+        agent = Agent(vector_store=mock_vector_store, retriever_tool=mock_retriever_tool)
 
         assert agent._vector_store == mock_vector_store
         assert agent._agent == mock_agent_instance
@@ -36,6 +39,9 @@ def test_agent_init():
 def test_agent_invoke():
     """Test Agent invoke method"""
     mock_vector_store = Mock(spec=VectorStore)
+    mock_retriever_tool = Mock()
+    mock_retriever_tool.tool = Mock()
+
     with patch('app.services.llm.agent.ChatOpenAI'), \
          patch('app.services.llm.agent.get_system_prompt') as mock_prompt, \
          patch('app.services.llm.agent.create_agent') as mock_create_agent:
@@ -44,7 +50,7 @@ def test_agent_invoke():
         mock_agent_instance = MagicMock()
         mock_create_agent.return_value = mock_agent_instance
 
-        agent = Agent(vector_store=mock_vector_store)
+        agent = Agent(vector_store=mock_vector_store, retriever_tool=mock_retriever_tool)
         messages = [{"role": "user", "content": "Hello"}]
         config = {"config_key": "config_value"}
         mock_agent_instance.invoke.return_value = "Response"
