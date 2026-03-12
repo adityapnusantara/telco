@@ -105,7 +105,17 @@ class ChatService:
 
     def _fallback_response(self, result: dict) -> ChatResponse:
         """Fallback response if structured_response is missing"""
-        messages_list = result["messages"]
+        messages_list = result.get("messages", [])
+
+        # Handle empty messages list
+        if not messages_list:
+            return ChatResponse(
+                reply="I apologize, but I couldn't generate a response. Please try again.",
+                escalate=True,  # Escalate when we can't generate a response
+                confidence_score=None,
+                sources=None
+            )
+
         last_message = messages_list[-1]
         reply = last_message.content if hasattr(last_message, 'content') else str(last_message)
 

@@ -92,7 +92,7 @@ def test_chat_service_chat_fallback_when_structured_missing():
 
 
 def test_extract_sources_stub():
-    """Test _extract_sources stub returns None (placeholder for Task 6)"""
+    """Test _extract_sources returns None when no sources are found"""
     mock_agent = Mock()
     mock_handler = Mock()
 
@@ -150,3 +150,37 @@ def test_fallback_response_extracts_sources_when_present():
     assert response.confidence_score is None
     # Sources should be extracted by _extract_sources from ToolMessage
     assert response.sources == ["billing_qna.json"]
+
+
+def test_fallback_response_handles_empty_messages():
+    """Test _fallback_response handles empty messages list with defensive error handling"""
+    mock_agent = Mock()
+    mock_handler = Mock()
+
+    service = ChatService(agent=mock_agent, handler=mock_handler)
+    result_dict = {"messages": []}
+
+    response = service._fallback_response(result_dict)
+
+    # Should return a safe error response instead of crashing
+    assert "couldn't generate a response" in response.reply.lower()
+    assert response.escalate is True  # Escalate when we can't respond
+    assert response.confidence_score is None
+    assert response.sources is None
+
+
+def test_fallback_response_handles_missing_messages_key():
+    """Test _fallback_response handles missing 'messages' key with defensive error handling"""
+    mock_agent = Mock()
+    mock_handler = Mock()
+
+    service = ChatService(agent=mock_agent, handler=mock_handler)
+    result_dict = {}  # No 'messages' key at all
+
+    response = service._fallback_response(result_dict)
+
+    # Should return a safe error response instead of crashing
+    assert "couldn't generate a response" in response.reply.lower()
+    assert response.escalate is True  # Escalate when we can't respond
+    assert response.confidence_score is None
+    assert response.sources is None
