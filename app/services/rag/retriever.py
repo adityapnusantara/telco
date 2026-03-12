@@ -1,4 +1,3 @@
-import warnings
 from langchain_core.tools import tool
 from app.services.rag.vector_store import VectorStore
 
@@ -35,20 +34,3 @@ class RetrieverTool:
     def tool(self):
         """Get the LangChain tool"""
         return self._tool
-
-
-# Legacy global function for backward compatibility (will be removed after migration)
-_search_knowledge_base = None
-
-
-def get_retriever_tool():
-    """Deprecated: Use RetrieverTool class instead"""
-    warnings.warn("Use RetrieverTool class instead", DeprecationWarning, stacklevel=2)
-    raise NotImplementedError("Use RetrieverTool class instead")
-
-
-# Legacy function for backward compatibility (will be removed after migration)
-def search_knowledge_base(query: str) -> str:
-    """Deprecated: Use RetrieverTool class instead"""
-    warnings.warn("Use RetrieverTool class instead", DeprecationWarning, stacklevel=2)
-    raise NotImplementedError("Use RetrieverTool class instead")

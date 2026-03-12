@@ -1,6 +1,6 @@
 from unittest.mock import patch, MagicMock, Mock
 import pytest
-from app.services.rag.retriever import get_retriever_tool, search_knowledge_base, RetrieverTool
+from app.services.rag.retriever import RetrieverTool
 from app.services.rag.vector_store import VectorStore
 
 
@@ -60,13 +60,3 @@ class TestRetrieverTool:
         result = retriever_tool.tool.invoke({"query": "unknown query"})
 
         assert result == "No relevant information found in the knowledge base."
-
-    def test_legacy_get_retriever_tool_raises_not_implemented(self):
-        """Test legacy get_retriever_tool function raises NotImplementedError"""
-        with pytest.raises(NotImplementedError):
-            get_retriever_tool()
-
-    def test_legacy_search_knowledge_base_raises_not_implemented(self):
-        """Test legacy search_knowledge_base function raises NotImplementedError"""
-        with pytest.raises(NotImplementedError):
-            search_knowledge_base("test query")

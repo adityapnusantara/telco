@@ -1,11 +1,12 @@
 from unittest.mock import patch, MagicMock
 from app.services.rag.ingestion import ingest_qna_documents
 
-@patch('app.services.rag.ingestion.get_vector_store')
-def test_ingest_qna_documents(mock_get_vs):
+@patch('app.services.rag.ingestion.VectorStore')
+def test_ingest_qna_documents(mock_vector_store_class):
     """Test ingesting Q&A documents into vector store"""
-    mock_vs = MagicMock()
-    mock_get_vs.return_value = mock_vs
+    mock_vs_instance = MagicMock()
+    mock_vs_instance.store = MagicMock()
+    mock_vector_store_class.return_value = mock_vs_instance
 
     from app.services.rag.models import QNADocument
 
@@ -20,4 +21,5 @@ def test_ingest_qna_documents(mock_get_vs):
 
     ingest_qna_documents(documents)
 
-    mock_vs.add_documents.assert_called_once()
+    mock_vs_instance.store.add_documents.assert_called_once()
+    mock_vector_store_class.assert_called_once()

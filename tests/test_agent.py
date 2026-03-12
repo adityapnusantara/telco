@@ -73,11 +73,3 @@ def test_agent_with_retriever_tool():
         call_kwargs = mock_create_agent.call_args.kwargs
         assert "tools" in call_kwargs
         assert call_kwargs["tools"] == [mock_retriever_tool.tool]
-
-
-def test_get_agent_deprecated():
-    """Test that get_agent() raises DeprecationWarning and NotImplementedError"""
-    with pytest.warns(DeprecationWarning, match="Use Agent class instead"), \
-         pytest.raises(NotImplementedError, match="Use Agent class instead"):
-        from app.services.llm.agent import get_agent
-        get_agent()

@@ -1,14 +1,7 @@
 from unittest.mock import patch, MagicMock
 import pytest
-from app.services.rag.vector_store import get_vector_store, VectorStore
+from app.services.rag.vector_store import VectorStore
 from app.core.config import config
-
-
-def test_get_vector_store_deprecated():
-    """Test that get_vector_store raises DeprecationWarning and NotImplementedError"""
-    with pytest.warns(DeprecationWarning, match="Use VectorStore class instead"):
-        with pytest.raises(NotImplementedError, match="Use VectorStore class instead"):
-            get_vector_store()
 
 
 @patch("app.services.rag.vector_store.QdrantVectorStore")

@@ -1,4 +1,3 @@
-import warnings
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from app.prompts.langfuse import get_system_prompt
@@ -30,10 +29,3 @@ class Agent:
     def invoke(self, messages, config):
         """Invoke the agent with messages and config"""
         return self._agent.invoke(messages, config)
-
-
-# Legacy function for backward compatibility (will be removed after migration)
-def get_agent():
-    """Deprecated: Use Agent class instead"""
-    warnings.warn("Use Agent class instead", DeprecationWarning, stacklevel=2)
-    raise NotImplementedError("Use Agent class instead")
