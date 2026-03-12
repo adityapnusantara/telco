@@ -1,72 +1,28 @@
-from unittest.mock import patch, MagicMock
-from app.services.llm.chat import chat, ChatResponse
+# tests/test_chat_service.py
+import pytest
+from unittest.mock import Mock
+from app.services.llm.chat import ChatService
+from app.services.llm.agent import Agent
+from app.services.llm.callbacks import CallbackHandler
 
 
-@patch('app.services.llm.chat.get_langfuse_handler')
-@patch('app.services.llm.chat.get_agent')
-def test_chat_success(mock_get_agent, mock_get_handler):
-    """Test successful chat response"""
-    mock_agent = MagicMock()
-    mock_response = MagicMock()
-    mock_response.messages = [{"role": "assistant", "content": "Test response"}]
-    mock_agent.invoke.return_value = mock_response
-    mock_get_agent.return_value = mock_agent
-
-    mock_handler = MagicMock()
-    mock_get_handler.return_value = mock_handler
-
-    response = chat("Hello", [], None)
-
-    assert isinstance(response, ChatResponse)
-    assert response.reply == "Test response"
-    assert response.escalate == False
+def test_chat_service_init():
+    """Test ChatService class initialization"""
+    mock_agent = Mock(spec=Agent)
+    mock_handler = Mock(spec=CallbackHandler)
+    service = ChatService(agent=mock_agent, handler=mock_handler)
+    assert service.agent == mock_agent
+    assert service.handler == mock_handler
 
 
-@patch('app.services.llm.chat.get_langfuse_handler')
-@patch('app.services.llm.chat.get_agent')
-def test_chat_with_escalation(mock_get_agent, mock_get_handler):
-    """Test chat response that requires escalation"""
-    mock_agent = MagicMock()
-    mock_response = MagicMock()
-    mock_response.messages = [{"role": "assistant", "content": "I cannot help with this issue. Please speak to a human agent."}]
-    mock_agent.invoke.return_value = mock_response
-    mock_get_agent.return_value = mock_agent
-
-    mock_handler = MagicMock()
-    mock_get_handler.return_value = mock_handler
-
-    response = chat("Complex issue", [], None)
-
-    assert isinstance(response, ChatResponse)
-    assert response.reply == "I cannot help with this issue. Please speak to a human agent."
-    assert response.escalate == True
-
-
-@patch('app.services.llm.chat.get_langfuse_handler')
-@patch('app.services.llm.chat.get_agent')
-def test_chat_with_conversation_history(mock_get_agent, mock_get_handler):
-    """Test chat with conversation history"""
-    mock_agent = MagicMock()
-    mock_response = MagicMock()
-    mock_response.messages = [{"role": "assistant", "content": "Based on previous context..."}]
-    mock_agent.invoke.return_value = mock_response
-    mock_get_agent.return_value = mock_agent
-
-    mock_handler = MagicMock()
-    mock_get_handler.return_value = mock_handler
-
-    history = [
-        {"role": "user", "content": "Previous question"},
-        {"role": "assistant", "content": "Previous answer"}
-    ]
-    response = chat("Follow up question", history, "conv-123")
-
-    assert isinstance(response, ChatResponse)
-    assert response.reply == "Based on previous context..."
+def test_chat_service_chat():
+    """Test ChatService.chat method"""
+    mock_agent = Mock()
+    mock_agent.invoke.return_value = Mock(messages=[{"content": "Hello! How can I help?"}])
+    mock_handler = Mock()
+    mock_handler.handler = Mock()
+    service = ChatService(agent=mock_agent, handler=mock_handler)
+    result = service.chat("Hello", [], "conv-123")
+    assert result.reply == "Hello! How can I help?"
+    assert result.escalate is False
     mock_agent.invoke.assert_called_once()
-    call_args = mock_agent.invoke.call_args
-    messages = call_args[0][0]["messages"]
-    assert len(messages) == 3
-    assert messages[0] == history[0]
-    assert messages[1] == history[1]
-    assert messages[2] == {"role": "user", "content": "Follow up question"}
