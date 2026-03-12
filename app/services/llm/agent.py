@@ -1,8 +1,20 @@
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
 from app.prompts.langfuse import get_system_prompt
 from app.services.rag.retriever import RetrieverTool
 from app.services.rag.vector_store import VectorStore
+
+
+class StructuredChatResponse(BaseModel):
+    """Structured response schema for agent output"""
+    reply: str = Field(description="The natural language response to the user's question")
+    confidence_score: float = Field(
+        description="Confidence score from 0.0 to 1.0 indicating how certain the agent is about its answer",
+        ge=0.0,
+        le=1.0
+    )
+    escalate: bool = Field(description="True if the user should be escalated to a human agent")
 
 
 class Agent:
