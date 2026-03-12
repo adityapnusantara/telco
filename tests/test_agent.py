@@ -13,7 +13,8 @@ def test_agent_init():
          patch('app.services.llm.agent.create_agent') as mock_create_agent:
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
-        mock_prompt.return_value = [{"content": "You are a helpful assistant"}]
+        # get_system_prompt returns a compiled string, not list of dict
+        mock_prompt.return_value = "You are a helpful assistant"
         mock_agent_instance = MagicMock()
         mock_create_agent.return_value = mock_agent_instance
 
@@ -37,7 +38,8 @@ def test_agent_invoke():
     with patch('app.services.llm.agent.ChatOpenAI'), \
          patch('app.services.llm.agent.get_system_prompt') as mock_prompt, \
          patch('app.services.llm.agent.create_agent') as mock_create_agent:
-        mock_prompt.return_value = [{"content": "You are a helpful assistant"}]
+        # get_system_prompt returns a compiled string
+        mock_prompt.return_value = "You are a helpful assistant"
         mock_agent_instance = MagicMock()
         mock_create_agent.return_value = mock_agent_instance
 
@@ -61,7 +63,8 @@ def test_agent_with_retriever_tool():
     with patch('app.services.llm.agent.ChatOpenAI'), \
          patch('app.services.llm.agent.get_system_prompt') as mock_prompt, \
          patch('app.services.llm.agent.create_agent') as mock_create_agent:
-        mock_prompt.return_value = [{"content": "You are a helpful assistant"}]
+        # get_system_prompt returns a compiled string
+        mock_prompt.return_value = "You are a helpful assistant"
         mock_agent_instance = MagicMock()
         mock_create_agent.return_value = mock_agent_instance
 

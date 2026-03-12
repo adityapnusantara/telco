@@ -12,7 +12,6 @@ class Agent:
         self._vector_store = vector_store
         self._llm = ChatOpenAI(model="gpt-4o", temperature=0)
         self._system_prompt = get_system_prompt()
-        prompt_text = "\n".join([msg["content"] for msg in self._system_prompt])
 
         if retriever_tool:
             self._retriever_tool = retriever_tool.tool
@@ -23,7 +22,7 @@ class Agent:
         self._agent = create_agent(
             model=self._llm,
             tools=[self._retriever_tool],
-            system_prompt=prompt_text
+            system_prompt=self._system_prompt  # Langfuse returns compiled string directly
         )
 
     def invoke(self, messages, config):

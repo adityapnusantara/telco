@@ -32,7 +32,7 @@ class ChatService:
             }
         }
 
-        result = self.agent.invoke({"messages": messages}, config=config)
+        result = self.agent.invoke(messages, config=config)
         reply = result.messages[-1]["content"]
 
         escalate = self._should_escalate(reply)
