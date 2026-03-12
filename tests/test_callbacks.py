@@ -1,14 +1,16 @@
 from unittest.mock import patch, MagicMock
-from app.services.llm.callbacks import get_langfuse_handler
+import pytest
+from app.services.llm.callbacks import CallbackHandler, get_langfuse_handler
 
 
-@patch('app.services.llm.callbacks.CallbackHandler')
-def test_get_langfuse_handler(mock_callback_handler):
-    """Test Langfuse callback handler creation"""
-    mock_handler = MagicMock()
-    mock_callback_handler.return_value = mock_handler
+def test_callback_handler_init():
+    """Test CallbackHandler class initialization"""
+    handler = CallbackHandler()
+    assert handler.handler is not None
 
-    handler = get_langfuse_handler()
 
-    assert handler is not None
-    mock_callback_handler.assert_called_once()
+@patch('app.services.llm.callbacks.LangfuseCallbackHandler')
+def test_get_langfuse_handler_deprecated(mock_langfuse_callback_handler):
+    """Test that the legacy get_langfuse_handler function raises DeprecationWarning"""
+    with pytest.raises(DeprecationWarning):
+        get_langfuse_handler()
