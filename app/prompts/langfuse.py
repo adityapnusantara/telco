@@ -29,10 +29,6 @@ def get_system_prompt(prompt_name: str = "telco-customer-service-agent"):
     client = get_langfuse_client()
     prompt = client.get_prompt(prompt_name, type="chat")
 
-    # Compile with default values
-    compiled = prompt.compile(
-        company_name="MyTelco",
-        escalation_contact="call 123 or use the MyTelco app"
-    )
-
-    return compiled
+    # Get LangChain-compatible prompt without variable substitution
+    # (variables are hardcoded in Langfuse prompt)
+    return prompt.get_langchain_prompt()
