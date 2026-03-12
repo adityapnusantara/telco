@@ -56,10 +56,12 @@ def test_agent_has_response_format_configured(monkeypatch):
 
     with patch('app.services.llm.agent.ChatOpenAI') as mock_chat_openai, \
          patch('app.services.llm.agent.get_system_prompt') as mock_get_prompt, \
+         patch('app.services.llm.agent.get_model_config') as mock_model_config, \
          patch('app.services.llm.agent.create_agent') as mock_create_agent:
 
         mock_chat_openai.return_value = mock_llm
         mock_get_prompt.return_value = mock_system_prompt
+        mock_model_config.return_value = {"model": "gpt-4o", "temperature": 0}
 
         # Import after patching
         from app.services.llm.agent import Agent
