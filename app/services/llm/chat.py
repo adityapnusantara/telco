@@ -1,3 +1,4 @@
+import re
 from pydantic import BaseModel
 from typing import Optional
 from langchain_core.messages import HumanMessage, AIMessage
@@ -61,8 +62,33 @@ class ChatService:
 
     def _extract_sources(self, result: dict) -> Optional[list[str]]:
         """Extract source document names from retriever tool calls"""
-        # TODO: Will be implemented in Task 6
-        return None
+        sources = []
+        messages = result.get("messages", [])
+
+        for msg in messages:
+            if hasattr(msg, "tool_calls"):
+                for call in msg.tool_calls:
+                    if call.get("name") == "search_knowledge_base":
+                        # Extract from tool args (query)
+                        args = call.get("args", {})
+                        # The source names are in the tool results, not args
+                        # We need to look at ToolMessage responses
+            elif hasattr(msg, "content") and isinstance(msg.content, list):
+                # Tool results come back as content lists
+                for content_item in msg.content:
+                    if isinstance(content_item, dict) and "text" in content_item:
+                        # Parse source from formatted response: "[category - source]: content"
+                        text = content_item["text"]
+                        # Match pattern like "[billing - billing_qna.json]: ..."
+                        pattern = r'\[([^\]]+?-([^\]]+?))\]:'
+                        matches = re.findall(pattern, text)
+                        for match in matches:
+                            if len(match) >= 2:
+                                source = match[1]  # Second capture group is the source filename
+                                if source not in sources:
+                                    sources.append(source)
+
+        return sources if sources else None
 
     def _fallback_response(self, result: dict) -> ChatResponse:
         """Fallback response if structured_response is missing"""
