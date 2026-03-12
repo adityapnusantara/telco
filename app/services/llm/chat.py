@@ -42,7 +42,14 @@ class ChatService:
         }
 
         result = self.agent.invoke({"messages": lc_messages}, config=config)
-        reply = result.messages[-1]["content"]
+
+        # Handle different result formats
+        if isinstance(result, dict):
+            # Result is a dict, extract reply directly
+            reply = result.get("output", str(result))
+        else:
+            # Result is an object with messages attribute
+            reply = result.messages[-1]["content"]
 
         escalate = self._should_escalate(reply)
 
