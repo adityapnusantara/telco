@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.chat import router as chat_router
 from app.core.config import config
 from app.services.rag.vector_store import VectorStore
+from app.services.rag.retriever import RetrieverTool
 from app.services.llm.callbacks import CallbackHandler
 from app.services.llm.agent import Agent
 from app.services.llm.chat import ChatService
@@ -41,8 +42,14 @@ async def startup_event():
         logger.info("Initializing CallbackHandler...")
         app.state.callback_handler = CallbackHandler()
 
+        logger.info("Initializing RetrieverTool...")
+        app.state.retriever_tool = RetrieverTool(vector_store=app.state.vector_store)
+
         logger.info("Initializing Agent...")
-        app.state.agent = Agent(vector_store=app.state.vector_store)
+        app.state.agent = Agent(
+            vector_store=app.state.vector_store,
+            retriever_tool=app.state.retriever_tool
+        )
 
         logger.info("Initializing ChatService...")
         app.state.chat_service = ChatService(
