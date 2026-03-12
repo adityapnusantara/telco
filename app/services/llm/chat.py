@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from langchain_core.messages import HumanMessage, AIMessage
 from .agent import Agent
 from .callbacks import CallbackHandler
 
@@ -24,6 +25,14 @@ class ChatService:
         messages = conversation_history.copy()
         messages.append({"role": "user", "content": message})
 
+        # Convert dict messages to LangChain Message objects
+        lc_messages = []
+        for msg in messages:
+            if msg["role"] == "user":
+                lc_messages.append(HumanMessage(content=msg["content"]))
+            else:
+                lc_messages.append(AIMessage(content=msg["content"]))
+
         config = {
             "callbacks": [self.handler.handler],
             "metadata": {
@@ -32,7 +41,7 @@ class ChatService:
             }
         }
 
-        result = self.agent.invoke(messages, config=config)
+        result = self.agent.invoke({"messages": lc_messages}, config=config)
         reply = result.messages[-1]["content"]
 
         escalate = self._should_escalate(reply)
