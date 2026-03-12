@@ -285,7 +285,7 @@ git commit -m "test: add integration test for agent structured response"
 Replace the content of the `chat()` method (lines 23-56) with:
 
 ```python
-def chat(self, message: str, conversation_history: list[dict], conversation_id: Optional[str] = None) -> ChatResponse:
+def chat(self, message: str, conversation_history: list[dict], session_id: Optional[str] = None) -> ChatResponse:
     """Process a chat message using the RAG agent"""
     messages = conversation_history.copy()
     messages.append({"role": "user", "content": message})
@@ -301,7 +301,7 @@ def chat(self, message: str, conversation_history: list[dict], conversation_id: 
     config = {
         "callbacks": [self.handler.handler],
         "metadata": {
-            "langfuse_session_id": conversation_id or "default",
+            "langfuse_session_id": session_id or "default",
             "langfuse_tags": ["chat", "telco-agent"]
         }
     }
@@ -490,7 +490,7 @@ def test_chat_service_extracts_structured_response():
     response = service.chat(
         message="Test message",
         conversation_history=[],
-        conversation_id="test-123"
+        session_id="test-123"
     )
 
     # Assertions
@@ -517,7 +517,7 @@ def test_chat_service_fallback_when_no_structured_response():
     response = service.chat(
         message="Test message",
         conversation_history=[],
-        conversation_id="test-123"
+        session_id="test-123"
     )
 
     # Assertions - should use fallback
@@ -560,7 +560,7 @@ def test_chat_service_extracts_sources_from_tool_calls():
     response = service.chat(
         message="Test message",
         conversation_history=[],
-        conversation_id="test-123"
+        session_id="test-123"
     )
 
     # Should extract sources from tool results
@@ -612,7 +612,7 @@ def test_chat_endpoint_returns_structured_fields():
         "/chat",
         json={
             "message": "What is my current bill?",
-            "conversation_id": "test-123"
+            "session_id": "test-123"
         }
     )
 
@@ -647,7 +647,7 @@ def test_chat_endpoint_with_triggers_escalation():
         "/chat",
         json={
             "message": "I need to speak to a human agent immediately about a legal matter",
-            "conversation_id": "test-456"
+            "session_id": "test-456"
         }
     )
 
@@ -777,7 +777,7 @@ Test with curl:
 ```bash
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "What is my current bill?", "conversation_id": "test-123"}'
+  -d '{"message": "What is my current bill?", "session_id": "test-123"}'
 ```
 
 Expected response should include `reply`, `confidence_score`, `escalate`, and optionally `sources`.

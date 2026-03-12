@@ -4,7 +4,7 @@ from app.api.models import ChatRequest, ChatResponse
 
 def test_chat_request_valid():
     """Test creating a valid chat request"""
-    req = ChatRequest(message="What are your plans?", conversation_history=[], conversation_id=None)
+    req = ChatRequest(message="What are your plans?", conversation_history=[], session_id=None)
     assert req.message == "What are your plans?"
 
 def test_chat_request_minimal():

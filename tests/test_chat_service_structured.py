@@ -29,7 +29,7 @@ def test_chat_service_extracts_structured_response():
     response = service.chat(
         message="Test message",
         conversation_history=[],
-        conversation_id="test-123"
+        session_id="test-123"
     )
 
     # Assertions
@@ -56,7 +56,7 @@ def test_chat_service_fallback_when_no_structured_response():
     response = service.chat(
         message="Test message",
         conversation_history=[],
-        conversation_id="test-123"
+        session_id="test-123"
     )
 
     # Assertions - should use fallback
@@ -100,7 +100,7 @@ def test_chat_service_extracts_sources_from_tool_calls():
     response = service.chat(
         message="Test message",
         conversation_history=[],
-        conversation_id="test-123"
+        session_id="test-123"
     )
 
     # Should extract sources from tool results

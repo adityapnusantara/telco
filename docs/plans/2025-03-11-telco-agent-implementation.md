@@ -1086,7 +1086,7 @@ class ChatResponse(BaseModel):
 def chat(
     message: str,
     conversation_history: list[dict],
-    conversation_id: Optional[str] = None
+    session_id: Optional[str] = None
 ) -> ChatResponse:
     """
     Process a chat message using the RAG agent.
@@ -1094,7 +1094,7 @@ def chat(
     Args:
         message: User's message
         conversation_history: Previous messages in the conversation
-        conversation_id: Optional conversation session ID
+        session_id: Optional conversation session ID
 
     Returns:
         ChatResponse with reply and escalation flag
@@ -1110,7 +1110,7 @@ def chat(
     config = {
         "callbacks": [handler],
         "metadata": {
-            "langfuse_session_id": conversation_id or "default",
+            "langfuse_session_id": session_id or "default",
             "langfuse_tags": ["chat", "telco-agent"]
         }
     }
@@ -1185,7 +1185,7 @@ def test_chat_request_valid():
     req = ChatRequest(
         message="What are your plans?",
         conversation_history=[],
-        conversation_id=None
+        session_id=None
     )
     assert req.message == "What are your plans?"
     assert req.conversation_history == []
@@ -1229,7 +1229,7 @@ from typing import Optional, List
 class ChatRequest(BaseModel):
     """Request model for chat endpoint"""
     message: str = Field(..., min_length=1, description="User's message")
-    conversation_id: Optional[str] = Field(None, description="Conversation session ID")
+    session_id: Optional[str] = Field(None, description="Conversation session ID")
     conversation_history: Optional[List[dict]] = Field(
         default_factory=list,
         description="Previous messages in the conversation"
@@ -1351,7 +1351,7 @@ async def create_chat(request: ChatRequest) -> ChatResponse:
         response = chat_service(
             message=request.message,
             conversation_history=request.conversation_history or [],
-            conversation_id=request.conversation_id
+            session_id=request.session_id
         )
         return response
     except Exception as e:

@@ -169,7 +169,7 @@ The system prompt in Langfuse contains detailed guidelines for when to set `esca
 
 ### API Endpoints
 
-- `POST /chat` - Main chat endpoint, takes `message`, optional `conversation_id`, optional `conversation_history`
+- `POST /chat` - Main chat endpoint, takes `message`, optional `session_id`, optional `conversation_history`
 - `GET /` - Root endpoint with app info
 - `GET /health` - Health check endpoint
 

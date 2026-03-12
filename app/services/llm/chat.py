@@ -21,7 +21,7 @@ class ChatService:
         self.agent = agent
         self.handler = handler
 
-    def chat(self, message: str, conversation_history: list[dict], conversation_id: Optional[str] = None) -> ChatResponse:
+    def chat(self, message: str, conversation_history: list[dict], session_id: Optional[str] = None) -> ChatResponse:
         """Process a chat message using the RAG agent"""
         messages = conversation_history.copy()
         messages.append({"role": "user", "content": message})
@@ -37,7 +37,7 @@ class ChatService:
         config = {
             "callbacks": [self.handler.handler],
             "metadata": {
-                "langfuse_session_id": conversation_id or "default",
+                "langfuse_session_id": session_id or "default",
                 "langfuse_tags": ["chat", "telco-agent"]
             }
         }

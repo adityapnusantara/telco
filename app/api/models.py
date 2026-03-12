@@ -4,7 +4,7 @@ from typing import Optional, List
 class ChatRequest(BaseModel):
     """Request model for chat endpoint"""
     message: str = Field(..., min_length=1, description="User's message")
-    conversation_id: Optional[str] = Field(None, description="Conversation session ID")
+    session_id: Optional[str] = Field(None, description="Session ID for tracking conversation")
     conversation_history: Optional[List[dict]] = Field(default_factory=list, description="Previous messages")
 
 class ChatResponse(BaseModel):

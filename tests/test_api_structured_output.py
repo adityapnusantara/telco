@@ -15,7 +15,7 @@ def test_chat_endpoint_returns_structured_fields():
             "/chat",
             json={
                 "message": "What is my current bill?",
-                "conversation_id": "test-123"
+                "session_id": "test-123"
             }
         )
 
@@ -49,7 +49,7 @@ def test_chat_endpoint_with_triggers_escalation():
             "/chat",
             json={
                 "message": "I need to speak to a human agent immediately about a legal matter",
-                "conversation_id": "test-456"
+                "session_id": "test-456"
             }
         )
 
