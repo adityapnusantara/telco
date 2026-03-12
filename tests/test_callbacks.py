@@ -11,6 +11,7 @@ def test_callback_handler_init():
 
 @patch('app.services.llm.callbacks.LangfuseCallbackHandler')
 def test_get_langfuse_handler_deprecated(mock_langfuse_callback_handler):
-    """Test that the legacy get_langfuse_handler function raises DeprecationWarning"""
-    with pytest.raises(DeprecationWarning):
-        get_langfuse_handler()
+    """Test that the legacy get_langfuse_handler function warns and raises NotImplementedError"""
+    with pytest.warns(DeprecationWarning, match="Use CallbackHandler class instead"):
+        with pytest.raises(NotImplementedError, match="Use CallbackHandler class instead"):
+            get_langfuse_handler()

@@ -1,3 +1,5 @@
+import warnings
+
 from langfuse.langchain import CallbackHandler as LangfuseCallbackHandler
 
 
@@ -16,4 +18,5 @@ class CallbackHandler:
 # Legacy function for backward compatibility (will be removed after migration)
 def get_langfuse_handler():
     """Deprecated: Use CallbackHandler class instead"""
-    raise DeprecationWarning("Use CallbackHandler class instead")
+    warnings.warn("Use CallbackHandler class instead", DeprecationWarning, stacklevel=2)
+    raise NotImplementedError("Use CallbackHandler class instead")
