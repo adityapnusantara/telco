@@ -34,7 +34,8 @@ class Agent:
         self._agent = create_agent(
             model=self._llm,
             tools=[self._retriever_tool],
-            system_prompt=self._system_prompt  # Langfuse returns compiled string directly
+            system_prompt=self._system_prompt,  # Langfuse returns compiled string directly
+            response_format=StructuredChatResponse
         )
 
     def invoke(self, messages, config):
