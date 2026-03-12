@@ -105,8 +105,8 @@ def test_extract_sources_stub():
     assert sources is None
 
 
-def test_fallback_response_stub():
-    """Test _fallback_response stub extracts reply from messages"""
+def test_fallback_response_calls_extract_sources():
+    """Test _fallback_response extracts reply from messages and calls _extract_sources"""
     mock_agent = Mock()
     mock_handler = Mock()
 
@@ -120,4 +120,33 @@ def test_fallback_response_stub():
     assert response.reply == "Fallback reply"
     assert response.escalate is False
     assert response.confidence_score is None
+    # _extract_sources is called and returns None for messages without sources
     assert response.sources is None
+
+
+def test_fallback_response_extracts_sources_when_present():
+    """Test _fallback_response extracts sources when available in result"""
+    from langchain_core.messages import ToolMessage
+
+    mock_agent = Mock()
+    mock_handler = Mock()
+
+    service = ChatService(agent=mock_agent, handler=mock_handler)
+    # ToolMessage contains source info, AIMessage is the agent's reply
+    result_dict = {
+        "messages": [
+            ToolMessage(
+                content="[billing - billing_qna.json]: Your bill is due on the 1st.",
+                tool_call_id="test_tool_id"
+            ),
+            AIMessage(content="Based on our billing policies, your bill is due on the 1st.")
+        ]
+    }
+
+    response = service._fallback_response(result_dict)
+
+    assert response.reply == "Based on our billing policies, your bill is due on the 1st."
+    assert response.escalate is False
+    assert response.confidence_score is None
+    # Sources should be extracted by _extract_sources from ToolMessage
+    assert response.sources == ["billing_qna.json"]

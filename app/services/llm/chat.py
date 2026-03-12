@@ -105,15 +105,15 @@ class ChatService:
 
     def _fallback_response(self, result: dict) -> ChatResponse:
         """Fallback response if structured_response is missing"""
-        # TODO: Will be implemented in Task 7
         messages_list = result["messages"]
         last_message = messages_list[-1]
         reply = last_message.content if hasattr(last_message, 'content') else str(last_message)
+
         return ChatResponse(
             reply=reply,
-            escalate=False,
+            escalate=False,  # Default on fallback
             confidence_score=None,
-            sources=None
+            sources=self._extract_sources(result)
         )
 
     def _should_escalate(self, reply: str) -> bool:
