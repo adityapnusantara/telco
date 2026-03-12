@@ -73,7 +73,7 @@ type: chat
 prompt:
   - role: system
     content: |
-      You are a customer service agent for {{company_name}}, a telecommunications provider.
+      You are a customer service agent for MyTelco, a telecommunications provider.
 
       Your capabilities:
       - Answer questions about billing, service plans, and troubleshooting
@@ -100,17 +100,9 @@ prompt:
       - Sensitive issues (legal, fraud, billing disputes)
       - Confidence score is below 0.5
 
-      Escalation contact: {{escalation_contact}}
+      Escalation contact: call 123 or use the MyTelco app
 
       Tone: Professional, helpful, concise
-
-variables:
-  company_name:
-    type: string
-    default: "MyTelco"
-  escalation_contact:
-    type: string
-    default: "call 123 or use the MyTelco app"
 
 labels:
   - production
@@ -189,8 +181,6 @@ The system prompt is structured to ensure reliable, hallucination-free responses
 5. **Escalation Criteria** - Explicitly lists scenarios requiring human intervention (legal, fraud, billing disputes, explicit human request). This is critical for customer satisfaction and compliance.
 
 6. **Tone Guidance** - Ensures consistent "Professional, helpful, concise" responses aligned with Telco brand standards.
-
-7. **Variables** - `company_name` and `escalation_contact` allow prompt reuse across different organizations without code changes.
 
 ## Chunking Strategy
 

@@ -164,7 +164,7 @@ The system prompt in Langfuse contains detailed guidelines for when to set `esca
 - **No global singletons** - All services are class-based with explicit dependency injection
 - **app.state lifecycle** - Services created at startup, stored in app.state, injected via Depends()
 - **Q&A pairs as chunks** - Each pair is self-contained, no text splitting needed
-- **System prompt variables**: `company_name` (default: "MyTelco"), `escalation_contact` (default: "call 123 or use the MyTelco app")
+- **System prompt**: Hardcoded values in Langfuse (company_name="MyTelco", escalation_contact="call 123 or use the MyTelco app")
 - **Tracing**: All requests automatically logged to Langfuse via CallbackHandler
 
 ### API Endpoints

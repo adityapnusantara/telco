@@ -1,5 +1,6 @@
 from unittest.mock import patch, MagicMock
 from app.prompts import langfuse
+from app.core.config import config
 
 def reset_singleton():
     """Reset the Langfuse client singleton between tests"""
@@ -24,9 +25,9 @@ def test_get_system_prompt(mock_get_client):
     mock_client = MagicMock()
     mock_prompt = MagicMock()
 
-    # Set up the compile method to return our expected result
+    # Set up get_langchain_prompt to return our expected result
     expected_prompt = [{"role": "system", "content": "You are a helpful assistant."}]
-    mock_prompt.compile.return_value = expected_prompt
+    mock_prompt.get_langchain_prompt.return_value = expected_prompt
 
     mock_client.get_prompt.return_value = mock_prompt
     mock_get_client.return_value = mock_client
@@ -38,8 +39,51 @@ def test_get_system_prompt(mock_get_client):
         "telco-customer-service-agent",
         type="chat"
     )
-    # Verify compile was called with the default values
-    mock_prompt.compile.assert_called_once_with(
-        company_name="MyTelco",
-        escalation_contact="call 123 or use the MyTelco app"
+    # Verify get_langchain_prompt was called
+    mock_prompt.get_langchain_prompt.assert_called_once()
+    # Verify compile was not called (variables are hardcoded in Langfuse)
+    mock_prompt.compile.assert_not_called()
+
+@patch('app.prompts.langfuse.get_client')
+def test_get_model_config(mock_get_client):
+    """Test fetching model config from Langfuse"""
+    reset_singleton()
+    mock_client = MagicMock()
+    mock_prompt = MagicMock()
+
+    # Mock config with model and temperature
+    mock_prompt.config = {
+        "model": "gpt-4o",
+        "temperature": 0
+    }
+
+    mock_client.get_prompt.return_value = mock_prompt
+    mock_get_client.return_value = mock_client
+
+    model_config = langfuse.get_model_config("telco-customer-service-agent")
+
+    assert model_config["model"] == "gpt-4o"
+    assert model_config["temperature"] == 0
+    mock_client.get_prompt.assert_called_once_with(
+        "telco-customer-service-agent",
+        type="chat"
     )
+
+@patch('app.prompts.langfuse.get_client')
+def test_get_model_config_with_fallback(mock_get_client):
+    """Test model config uses fallback when Langfuse config is empty"""
+    reset_singleton()
+    mock_client = MagicMock()
+    mock_prompt = MagicMock()
+
+    # Mock empty config
+    mock_prompt.config = {}
+
+    mock_client.get_prompt.return_value = mock_prompt
+    mock_get_client.return_value = mock_client
+
+    model_config = langfuse.get_model_config("telco-customer-service-agent")
+
+    # Should use fallback values from config.py
+    assert model_config["model"] == config.DEFAULT_MODEL
+    assert model_config["temperature"] == config.DEFAULT_TEMPERATURE
