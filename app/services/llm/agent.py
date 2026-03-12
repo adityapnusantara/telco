@@ -24,12 +24,7 @@ class Agent:
         self._vector_store = vector_store
         self._llm = ChatOpenAI(model="gpt-4o", temperature=0)
         self._system_prompt = get_system_prompt()
-
-        if retriever_tool:
-            self._retriever_tool = retriever_tool.tool
-        else:
-            # Create RetrieverTool if not provided
-            self._retriever_tool = RetrieverTool(vector_store).tool
+        self._retriever_tool = retriever_tool.tool
 
         self._agent = create_agent(
             model=self._llm,
