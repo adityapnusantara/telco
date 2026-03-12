@@ -228,25 +228,55 @@ Each Q&A pair is a self-contained semantic unit:
 
 ### Why This Model?
 
-| Factor | Decision | Reasoning |
-|--------|----------|-----------|
-| **Cost** | Small model | ~10x cheaper than `text-embedding-3-large` - critical for production scale |
-| **Speed** | Small model | Faster inference = lower latency for customer-facing API |
-| **Quality** | Small model | Sufficient for document-based Q&A where answers are explicit in text |
-| **Dimensions** | 1536 | Default dimension for `text-embedding-3-small` - good balance of quality and performance |
+| Factor | Reasoning |
+|--------|-----------|
+| **Simplicity** | Managed API - zero infrastructure to set up or maintain |
+| **Speed** | Fast inference via optimized API (~50-100ms latency) |
+| **Quality** | Strong performance on English Q&A where answers are explicit in text |
+| **Dimensions** | 1536 - good balance of quality and performance |
+| **Cost-effective for this use case** | Q&A pairs are clear and don't require complex retrieval |
 
-### Alternative Considered: `text-embedding-3-large`
+### Alternative: BAAI/bge-m3
 
-- **Pros:** Slightly better semantic understanding, supports multilingual better
-- **Cons:** 4x more expensive, slower, higher dimensional vectors (3072)
-- **Decision:** Not justified for this use case - Q&A pairs have clear semantic relationships
+**BAAI/bge-m3** is a powerful open-source embedding model worth considering:
 
-### Dimensionality Reduction Option
+- **Dimensions:** 1024 (33% less storage per vector)
+- **Multilingual:** Optimized for 100+ languages
+- **Long documents:** Handles up to 8192 tokens
+- **Cost:** Free to use (self-hosted)
 
-The `text-embedding-3-small` model supports dimensionality reduction (can use 512 instead of 1536). For production:
-- **Smaller dimensions (512)** = Faster search, lower storage costs
-- **Trade-off:** Potential slight quality degradation
-- **Current implementation:** Uses 1536 for best retrieval quality
+**Why not chosen for this project?**
+
+The main consideration is **infrastructure complexity**:
+
+| Requirement | text-embedding-3-small | BAAI/bge-m3 |
+|-------------|------------------------|-------------|
+| Deployment | API call (zero setup) | Self-hosted (GPU/CPU server) |
+| Maintenance | Managed by OpenAI | You maintain the server |
+| Scaling | Automatic | Manual scaling |
+| Cost | Pay per token | Infrastructure + compute costs |
+
+For this Telco customer service Q&A system:
+- **Quick deployment** → managed API is the simplest path
+- **Data volume is manageable** → current ingestion size makes text-embedding-3-small cost-effective
+
+**Recommendation:** If data ingestion grows significantly (hundreds of thousands of Q&A pairs), consider migrating to BAAI/bge-m3 for better cost efficiency.
+
+**When to consider migrating to BAAI/bge-m3?**
+
+1. **Cost optimization at scale** - Self-hosting becomes cheaper at high query volumes
+2. **Multilingual expansion** - Need for 100+ language support
+3. **Data privacy** - Requirement to keep all processing in-house
+4. **Long document handling** - Frequently need to search through >4000 token documents
+
+### Dimensionality Option
+
+The `text-embedding-3-small` model supports dimensionality reduction (512 instead of 1536):
+- **Benefit:** 67% less storage, faster search
+- **Trade-off:** Slight quality degradation
+- **Current:** Uses 1536 for best retrieval quality
+
+For production, test both dimensions with your specific Q&A dataset to find the right balance.
 
 ## Limitations & Production Improvements
 
