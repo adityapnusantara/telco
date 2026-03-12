@@ -9,6 +9,7 @@ AI-powered customer service agent for a telecommunications company, built with F
 - 📊 Prompt management and tracing with Langfuse
 - 🚀 Built with LangChain v1.2.11 and `create_agent`
 - 🔄 Automatic escalation to human agents when needed
+- 📝 Structured responses with confidence scores
 
 ## Quick Start
 
@@ -55,19 +56,29 @@ prompt:
       - Use ONLY information from the retrieved knowledge base
       - If the information is not in the knowledge base, acknowledge it honestly
 
-      Escalation rules:
-      - Escalate to human if you cannot confidently answer from the knowledge base
-      - DO NOT make up or hallucinate information
-      - Clearly state when you don't know something
+      Structured Response Format:
+      You must respond with a structured output containing:
+      - reply: Your natural language response to the customer
+      - confidence_score: A float from 0.0 to 1.0 indicating how confident you are in your answer
+      - escalate: A boolean flag - set to true if the customer needs human assistance
 
-      Tone: Professional, helpful, concise
+      Confidence Guidelines:
+      - 0.9-1.0: Direct answer found in knowledge base with clear, relevant information
+      - 0.7-0.9: Answer based on knowledge base but requires some interpretation
+      - 0.5-0.7: Partial information available, answer may be incomplete
+      - 0.0-0.5: Limited or no relevant information found
 
-      When to escalate:
-      - No relevant information found in knowledge base
-      - Customer requests to speak to human
-      - Complex billing disputes requiring manual review
+      Escalation Criteria:
+      Set escalate=true when:
+      - User question cannot be answered with available information
+      - Request requires capabilities outside agent scope (account changes, refunds)
+      - User explicitly asks for a human agent
+      - Sensitive issues (legal, fraud, billing disputes)
+      - Confidence score is below 0.5
 
       Escalation contact: {{escalation_contact}}
+
+      Tone: Professional, helpful, concise
 
 variables:
   company_name:
@@ -106,14 +117,33 @@ curl -X POST "http://localhost:8000/chat" \
   }'
 ```
 
+**Response Format:**
+
+```json
+{
+  "reply": "We offer several service plans...",
+  "confidence_score": 0.95,
+  "escalate": false,
+  "sources": ["plans_qna.json"]
+}
+```
+
+**Response Fields:**
+- `reply`: The agent's natural language response
+- `confidence_score`: Confidence level (0.0-1.0) indicating answer quality
+- `escalate`: Boolean flag - true if human agent assistance is recommended
+- `sources`: List of knowledge base files used for the answer
+
 ## System Prompt Design
 
 The system prompt is structured with:
 1. Clear role definition - Sets boundaries as a Telco customer service agent
 2. Explicit capabilities - Lists what the agent can and cannot do
-3. Escalation rules - Defines when to escalate to prevent hallucination
-4. Tone guidance - Ensures consistent customer experience
-5. Variables - `company_name` and `escalation_contact` for flexibility
+3. Structured response format - Defines the JSON schema for responses (reply, confidence_score, escalate)
+4. Confidence guidelines - Provides clear criteria for confidence scoring
+5. Escalation criteria - Defines when to escalate to prevent hallucination
+6. Tone guidance - Ensures consistent customer experience
+7. Variables - `company_name` and `escalation_contact` for flexibility
 
 ## Chunking Strategy
 
@@ -192,8 +222,8 @@ The application uses **class-based services with dependency injection**:
 - **VectorStore** - Qdrant vector store wrapper with explicit initialization
 - **CallbackHandler** - Langfuse tracing handler wrapper
 - **RetrieverTool** - Knowledge base search tool with VectorStore dependency
-- **Agent** - LangChain agent wrapper with VectorStore and RetrieverTool dependencies
-- **ChatService** - Chat orchestration with Agent and CallbackHandler dependencies
+- **Agent** - LangChain agent with structured output (StructuredChatResponse)
+- **ChatService** - Chat orchestration, extracts and validates structured responses
 
 **Lifecycle Management:**
 - All services are initialized during FastAPI startup event

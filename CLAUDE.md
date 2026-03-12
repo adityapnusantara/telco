@@ -64,7 +64,7 @@ RetrieverTool → VectorStore → Qdrant (semantic search)
     ↓
 Langfuse CallbackHandler (tracing)
     ↓
-Response with escalate flag based on keywords
+Structured response (reply, confidence_score, escalate)
 ```
 
 ### Service Architecture
@@ -72,9 +72,9 @@ Response with escalate flag based on keywords
 The application uses **class-based services with explicit dependency injection**:
 
 **LLM Services (`app/services/llm/`)**
-- `agent.py` - `Agent` class wrapping LangChain `create_agent` with GPT-4o
+- `agent.py` - `Agent` class with `StructuredChatResponse` model for structured output
 - `callbacks.py` - `CallbackHandler` class wrapping Langfuse tracing
-- `chat.py` - `ChatService` class for orchestration and escalation detection
+- `chat.py` - `ChatService` class for orchestration, extracts structured response from agent
 
 **RAG Services (`app/services/rag/`)**
 - `vector_store.py` - `VectorStore` class wrapping Qdrant client and embeddings
@@ -86,7 +86,7 @@ The application uses **class-based services with explicit dependency injection**
 **Configuration & Integration**
 - `app/core/config.py` - Environment variables via dotenv, all service credentials
 - `app/prompts/langfuse.py` - Fetches system prompt from Langfuse Prompt Management
-- `app/api/models.py` - Pydantic request/response models for `/chat` endpoint
+- `app/api/models.py` - Pydantic request/response models for `/chat` endpoint, includes `StructuredChatResponse` for structured output
 
 ### Lifecycle Management
 
@@ -131,13 +131,27 @@ Q&A pairs stored as JSON in `data/kb/`:
 
 Each document has: `question`, `answer`, `source`, `category`
 
+### Structured Output
+
+The agent uses LangChain's `response_format` parameter to return structured responses:
+
+**StructuredChatResponse Model:**
+- `reply`: Natural language response
+- `confidence_score`: Float (0.0-1.0) indicating answer confidence
+- `escalate`: Boolean flag for human escalation
+
+The LLM determines these values directly based on the system prompt instructions.
+
 ### Escalation Logic
 
-The `ChatService._should_escalate()` method checks for these keywords in responses:
-- "cannot help", "don't know", "unable to assist"
-- "speak to a human", "transfer to agent", "escalate"
+The LLM now directly determines the `escalate` flag based on the system prompt instructions. The escalation criteria are:
 
-When triggered, sets `escalate: true` in ChatResponse.
+- User question cannot be answered with available information
+- Request requires capabilities outside agent scope (account changes, refunds)
+- User explicitly asks for a human agent
+- Sensitive issues (legal, fraud, billing disputes)
+
+The system prompt in Langfuse contains detailed guidelines for when to set `escalate=true`.
 
 ### External Dependencies
 
