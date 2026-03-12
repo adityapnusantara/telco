@@ -15,7 +15,7 @@ class Config:
     # Qdrant
     QDRANT_URL: str = os.getenv("QDRANT_URL", "")
     QDRANT_API_KEY: str = os.getenv("QDRANT_API_KEY", "")
-    QDRANT_COLLECTION_NAME: str = "telco_knowledge_base"
+    QDRANT_COLLECTION_NAME: str = os.getenv("QDRANT_COLLECTION_NAME", "telco_knowledge_base")
 
     # App
     APP_ENV: str = os.getenv("APP_ENV", "development")
