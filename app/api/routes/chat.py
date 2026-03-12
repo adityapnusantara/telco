@@ -26,7 +26,7 @@ async def create_chat(
         response = service.chat(
             message=request.message,
             conversation_history=request.conversation_history or [],
-            conversation_id=request.conversation_id
+            session_id=request.session_id
         )
         return response
     except Exception as e:

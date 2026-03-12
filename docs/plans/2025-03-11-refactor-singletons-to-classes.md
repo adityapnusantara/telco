@@ -108,14 +108,14 @@ class ChatService:
         self.agent = agent
         self.handler = handler
 
-    def chat(self, message: str, conversation_history: list, conversation_id: str = None):
+    def chat(self, message: str, conversation_history: list, session_id: str = None):
         messages = conversation_history.copy()
         messages.append({"role": "user", "content": message})
 
         config = {
             "callbacks": [self.handler.handler],
             "metadata": {
-                "langfuse_session_id": conversation_id or "default",
+                "langfuse_session_id": session_id or "default",
                 "langfuse_tags": ["chat", "telco-agent"]
             }
         }
@@ -204,7 +204,7 @@ async def create_chat(
     return service.chat(
         message=request.message,
         conversation_history=request.conversation_history or [],
-        conversation_id=request.conversation_id
+        session_id=request.session_id
     )
 ```
 

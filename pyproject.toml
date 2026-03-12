@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "telco"
-version = "0.1.0"
+version = "0.1.1"
 description = "Telco Customer Service AI Agent"
 authors = ["AI Engineer"]
 readme = "README.md"
@@ -28,6 +28,12 @@ qdrant-client = "^1.17.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"
 httpx = "^0.27.0"
+pytest-cov = "^7.0.0"
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (require external services like OpenAI API)"
+]
 
 [build-system]
 requires = ["poetry-core"]

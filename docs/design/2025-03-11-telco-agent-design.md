@@ -70,7 +70,7 @@ This document outlines the design for a Customer Service AI Agent for a telecomm
 ```python
 class ChatRequest(BaseModel):
     message: str                           # Current user message
-    conversation_id: str | None = None     # For session tracking (Q2)
+    session_id: str | None = None     # For session tracking (Q2)
     conversation_history: list[dict] | None = None  # Previous messages
 ```
 

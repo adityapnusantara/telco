@@ -25,7 +25,7 @@ def test_chat_endpoint_with_depends():
         response = client.post("/chat", json={
             "message": "Hello",
             "conversation_history": [],
-            "conversation_id": "test-123"
+            "session_id": "test-123"
         })
 
         assert response.status_code == 200

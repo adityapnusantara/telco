@@ -25,4 +25,8 @@ class Config:
     APP_ENV: str = os.getenv("APP_ENV", "development")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "info")
 
+    # LLM Defaults
+    DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "gpt-4o")
+    DEFAULT_TEMPERATURE: float = float(os.getenv("DEFAULT_TEMPERATURE", "0"))
+
 config = Config()

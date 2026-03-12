@@ -338,7 +338,7 @@ class ChatService:
         self.agent = agent
         self.handler = handler
 
-    def chat(self, message: str, conversation_history: list[dict], conversation_id: Optional[str] = None) -> ChatResponse:
+    def chat(self, message: str, conversation_history: list[dict], session_id: Optional[str] = None) -> ChatResponse:
         """Process a chat message using the RAG agent"""
         messages = conversation_history.copy()
         messages.append({"role": "user", "content": message})
@@ -346,7 +346,7 @@ class ChatService:
         config = {
             "callbacks": [self.handler.handler],
             "metadata": {
-                "langfuse_session_id": conversation_id or "default",
+                "langfuse_session_id": session_id or "default",
                 "langfuse_tags": ["chat", "telco-agent"]
             }
         }
@@ -546,7 +546,7 @@ def test_chat_endpoint_with_depends():
         response = client.post("/chat", json={
             "message": "Hello",
             "conversation_history": [],
-            "conversation_id": "test-123"
+            "session_id": "test-123"
         })
 
         assert response.status_code == 200
@@ -601,7 +601,7 @@ async def create_chat(
         response = service.chat(
             message=request.message,
             conversation_history=request.conversation_history or [],
-            conversation_id=request.conversation_id
+            session_id=request.session_id
         )
         return response
     except Exception as e:
