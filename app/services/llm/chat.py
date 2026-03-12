@@ -125,12 +125,3 @@ class ChatService:
             confidence_score=None,
             sources=self._extract_sources(result)
         )
-
-    def _should_escalate(self, reply: str) -> bool:
-        """Determine if escalation is needed"""
-        escalation_indicators = [
-            "cannot help", "don't know", "unable to assist",
-            "speak to a human", "transfer to agent", "escalate"
-        ]
-        reply_lower = reply.lower()
-        return any(indicator in reply_lower for indicator in escalation_indicators)
