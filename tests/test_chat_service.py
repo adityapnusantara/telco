@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from app.services.llm.chat import ChatService
 from app.services.llm.agent import Agent
 from app.services.llm.callbacks import CallbackHandler
+from langchain_core.messages import AIMessage
 
 
 def test_chat_service_init():
@@ -17,8 +18,12 @@ def test_chat_service_init():
 
 def test_chat_service_chat():
     """Test ChatService.chat method"""
+    # Create mock message with content attribute
+    mock_message = AIMessage(content="Hello! How can I help?")
     mock_agent = Mock()
-    mock_agent.invoke.return_value = Mock(messages=[{"content": "Hello! How can I help?"}])
+    mock_agent.invoke.return_value = {
+        "messages": [mock_message]
+    }
     mock_handler = Mock()
     mock_handler.handler = Mock()
     service = ChatService(agent=mock_agent, handler=mock_handler)
