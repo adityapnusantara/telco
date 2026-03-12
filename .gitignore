@@ -33,6 +33,10 @@ poetry.lock
 *.swp
 .DS_Store
 
+# --- Git Worktrees ---
+.worktrees/
+worktrees/
+
 # --- Logs & Temp ---
 *.log
 logs/
