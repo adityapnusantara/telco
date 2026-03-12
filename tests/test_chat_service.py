@@ -1,6 +1,6 @@
 # tests/test_chat_service.py
 import pytest
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock, patch
 from app.services.llm.chat import ChatService
 from app.services.llm.agent import Agent
 from app.services.llm.callbacks import CallbackHandler
@@ -26,6 +26,7 @@ def test_chat_service_chat():
     }
     mock_handler = Mock()
     mock_handler.handler = Mock()
+
     service = ChatService(agent=mock_agent, handler=mock_handler)
     result = service.chat("Hello", [], "conv-123")
     assert result.reply == "Hello! How can I help?"

@@ -50,7 +50,10 @@ class ChatService:
 
         escalate = self._should_escalate(reply)
 
-        return ChatResponse(reply=reply, escalate=escalate)
+        return ChatResponse(
+            reply=reply,
+            escalate=escalate
+        )
 
     def _should_escalate(self, reply: str) -> bool:
         """Determine if escalation is needed"""
