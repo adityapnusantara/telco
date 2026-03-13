@@ -39,7 +39,8 @@ def test_agent_init():
         assert "tools" in call_kwargs
         assert "system_prompt" in call_kwargs
         assert call_kwargs["system_prompt"] == "You are a helpful assistant"
-        assert "response_format" in call_kwargs
+        # response_format should NOT be present (removed for natural text output)
+        assert "response_format" not in call_kwargs
 
 
 def test_agent_invoke():

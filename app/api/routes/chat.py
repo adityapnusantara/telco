@@ -24,7 +24,7 @@ async def create_chat(
 ) -> ChatResponse:
     """Chat endpoint for the Telco customer service agent"""
     try:
-        response = service.chat(
+        response = await service.chat(
             message=request.message,
             conversation_history=request.conversation_history or [],
             session_id=request.session_id
