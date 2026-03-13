@@ -28,11 +28,13 @@ async def test_chat_stream_yields_sse_events():
     async def mock_astream_generator(*args, **kwargs):
         astream_called.append(True)
         # Simulate yielding chunks with message_chunk objects
+        # Actual format from LangChain astream with stream_mode="messages" is:
+        # {'type': 'messages', 'ns': (), 'data': (AIMessageChunk, metadata)}
         for chunk_text in full_reply_chunks:
-            # Create mock message chunk with text attribute
+            # Create mock message chunk with content attribute (not text)
             message_chunk = Mock()
-            message_chunk.text = chunk_text
-            yield (message_chunk, {})
+            message_chunk.content = chunk_text
+            yield {"type": "messages", "ns": (), "data": (message_chunk, {})}
 
     mock_agent.astream = mock_astream_generator
 

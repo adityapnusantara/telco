@@ -1,5 +1,6 @@
 import json
 import re
+from collections.abc import AsyncIterator
 from pydantic import BaseModel
 from typing import Optional
 from langchain_core.messages import HumanMessage, AIMessage
@@ -61,7 +62,7 @@ class ChatService:
             sources=sources
         )
 
-    async def chat_stream(self, message: str, conversation_history: list[dict], session_id: Optional[str] = None):
+    async def chat_stream(self, message: str, conversation_history: list[dict], session_id: Optional[str] = None) -> AsyncIterator[str]:
         """Stream chat response via Server-Sent Events.
 
         Yields SSE-formatted strings:
@@ -90,10 +91,14 @@ class ChatService:
         full_reply = ""
 
         # Stream tokens from agent
-        async for message_chunk, metadata in self.agent.astream({"messages": lc_messages}, config):
-            if message_chunk.text:
-                full_reply += message_chunk.text
-                yield f"data: {json.dumps({'type': 'token', 'content': message_chunk.text})}\n\n"
+        async for chunk in self.agent.astream({"messages": lc_messages}, config):
+            # chunk is a dict with 'data' key containing (AIMessageChunk, metadata) tuple
+            data = chunk.get("data")
+            if data and len(data) >= 1:
+                message_chunk = data[0]
+                if hasattr(message_chunk, "content") and message_chunk.content:
+                    full_reply += message_chunk.content
+                    yield f"data: {json.dumps({'type': 'token', 'content': message_chunk.content})}\n\n"
 
         # Extract sources from the final result (need to get full result)
         # For now, we'll re-invoke to get the full result with tool outputs
