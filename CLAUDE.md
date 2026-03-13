@@ -162,18 +162,55 @@ The application uses structured output in two places:
 
 Escalation is determined by the classification agent analyzing the reply and context:
 
-- The classification agent uses a dedicated prompt template from Langfuse
+- The classification agent uses a dedicated prompt template from Langfuse (`telco-customer-service-classification`)
 - The `ReplyClassification` model returns both `confidence_score` and `escalate`
 - Escalation criteria include:
   - User asks for human agent
   - Question cannot be answered with available information
   - Request requires capabilities outside agent scope (account changes, refunds)
   - Sensitive issues (legal, fraud, billing disputes)
-- Request requires capabilities outside agent scope (account changes, refunds)
-- User explicitly asks for a human agent
-- Sensitive issues (legal, fraud, billing disputes)
 
-The system prompt in Langfuse contains detailed guidelines for when to set `escalate=true`.
+**Classification Prompt Template (create in Langfuse):**
+```
+You are a customer service response quality classifier. Analyze the reply and provide metadata.
+
+Reply: {{reply}}
+
+Context: {{context}}
+
+Scoring Guidelines:
+
+**confidence_score** (0.0-1.0):
+- 0.9-1.0: Sources available, answer is specific and complete
+- 0.7-0.8: Sources available but answer is somewhat vague or incomplete
+- 0.5-0.6: No sources available OR answer is generic/could be wrong
+- 0.3-0.4: Cannot answer, apologizing, or clearly uncertain
+- 0.0-0.2: Completely unable to help
+
+**escalate** (true/false):
+Set to TRUE if:
+- Customer explicitly asks for human agent
+- Customer wants to do something outside agent's scope (account changes, refunds, cancellations)
+- Sensitive topics: legal threats, fraud reports, billing disputes, formal complaints
+- Question cannot be answered with available information
+- Customer seems frustrated or explicitly dissatisfied
+- No sources available AND answer expresses inability to help
+
+Set to FALSE if:
+- Sources available and answer directly addresses the question
+- Generic but helpful information is provided
+- Answer acknowledges limitations but provides useful guidance
+
+Return only JSON: {"confidence_score": 0.8, "escalate": false}
+```
+
+**Config for classification prompt:**
+```json
+{
+    "model": "gpt-4o",
+    "temperature": 0
+}
+```
 
 ### External Dependencies
 
@@ -191,9 +228,45 @@ The system prompt in Langfuse contains detailed guidelines for when to set `esca
 
 ### API Endpoints
 
-- `POST /chat` - Main chat endpoint, takes `message`, optional `session_id`, optional `conversation_history`
+- `POST /chat` - Main chat endpoint (async), takes `message`, optional `session_id`, optional `conversation_history`
+- `POST /chat/stream` - SSE streaming endpoint for real-time token responses
+- `WebSocket /chat/stream/ws` - WebSocket endpoint for bidirectional streaming
 - `GET /` - Root endpoint with app info
 - `GET /health` - Health check endpoint
+
+### Streaming Implementation
+
+Both `/chat/stream` (SSE) and `/chat/stream/ws` (WebSocket) stream **AI reply tokens only**, filtering out ToolMessage (knowledge base retrieval results).
+
+**How to filter:**
+```python
+# ToolMessage has 'tool_call_id' attribute, AIMessage doesn't
+if not hasattr(message_chunk, 'tool_call_id'):
+    # Stream this as AI reply token
+```
+
+**SSE Response Format:**
+```
+data: {"type": "token", "content": "Hello"}
+data: {"type": "token", "content": "!"}
+data: {"type": "end", "reply": "Hello!", "confidence_score": 0.85, "escalate": false, "sources": [...]}
+```
+
+**Important:** The `chat()` method is async - route handlers must use `await service.chat(...)`.
+
+### OpenTelemetry Warning Suppression
+
+FastAPI async + OpenTelemetry produces "Failed to detach context" warnings. A logging filter is added in `app/main.py`:
+```python
+class OpenTelemetryContextFilter(logging.Filter):
+    def filter(self, record):
+        if "Failed to detach context" in record.getMessage():
+            return False
+        return True
+
+otel_logger = logging.getLogger("opentelemetry.context")
+otel_logger.addFilter(OpenTelemetryContextFilter())
+```
 
 ### File Naming Conventions
 
