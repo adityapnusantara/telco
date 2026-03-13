@@ -5,6 +5,7 @@ from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
 
 from app.core.config import config
+from app.prompts.langfuse import get_extraction_prompt
 from .knowledge_base import (
     clear_qna_json_directory,
     load_markdown_sources,
@@ -15,34 +16,35 @@ from .models import QNADocument, QNAExtractionResult
 from .vector_store import VectorStore
 
 
-EXTRACTION_SYSTEM_PROMPT = (
-    "You are a strict information extraction assistant. Extract factual Q&A pairs only "
-    "from the provided markdown. Do not add external information. Keep answers concise."
-)
-
-
 def _build_extraction_agent():
+    extraction_prompt = get_extraction_prompt()
+    model_config = extraction_prompt["model_config"]
+
     llm = ChatOpenAI(
-        model=config.EXTRACTION_MODEL,
-        temperature=0,
+        model=model_config["model"],
+        temperature=model_config["temperature"],
     )
     return create_agent(
         model=llm,
         tools=[],
-        system_prompt=EXTRACTION_SYSTEM_PROMPT,
+        system_prompt=extraction_prompt["system_prompt"],
         response_format=QNAExtractionResult,
-    )
+    ), extraction_prompt
 
 
-def _extract_qna_for_source(agent, markdown_content: str, source: str, category: str) -> list[QNADocument]:
-    extraction_prompt = (
-        "Extract Q&A pairs from this markdown content.\n"
-        f"Source filename: {source}\n"
-        f"Category: {category}\n\n"
-        "Markdown content:\n"
-        f"{markdown_content}"
+def _extract_qna_for_source(
+    agent,
+    extraction_user_prompt,
+    markdown_content: str,
+    source: str,
+    category: str,
+) -> list[QNADocument]:
+    compiled_prompt = extraction_user_prompt.compile(
+        source=source,
+        category=category,
+        markdown_content=markdown_content,
     )
-    result = agent.invoke({"messages": [{"role": "user", "content": extraction_prompt}]})
+    result = agent.invoke({"messages": [{"role": "user", "content": compiled_prompt}]})
     structured = result.get("structured_response")
     if structured is None:
         raise ValueError(f"Extraction agent returned no structured response for source '{source}'")
@@ -69,7 +71,7 @@ def extract_qna_from_markdown(kb_md_dir: str = "data/kb_md", kb_json_dir: str = 
         raise ValueError(f"No markdown source files found in '{kb_md_dir}'")
 
     clear_qna_json_directory(kb_json_dir)
-    extraction_agent = _build_extraction_agent()
+    extraction_agent, extraction_prompt = _build_extraction_agent()
 
     total_qna = 0
     for source_path, markdown_content in markdown_sources:
@@ -77,6 +79,7 @@ def extract_qna_from_markdown(kb_md_dir: str = "data/kb_md", kb_json_dir: str = 
         category = source_path.stem
         items = _extract_qna_for_source(
             extraction_agent,
+            extraction_prompt["user_prompt"],
             markdown_content=markdown_content,
             source=source_name,
             category=category,

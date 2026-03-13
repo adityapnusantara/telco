@@ -70,13 +70,27 @@ def test_extract_qna_from_markdown_overwrites_json(tmp_path):
             ]
         )
     }
+    mock_user_prompt = MagicMock()
+    mock_user_prompt.compile.return_value = "Compiled extraction prompt"
 
     with patch("app.services.rag.ingestion.create_agent", return_value=mock_agent), patch(
         "app.services.rag.ingestion.ChatOpenAI"
+    ), patch(
+        "app.services.rag.ingestion.get_extraction_prompt",
+        return_value={
+            "system_prompt": "Extraction system prompt",
+            "user_prompt": mock_user_prompt,
+            "model_config": {"model": "gpt-4o-mini", "temperature": 0},
+        },
     ):
         total = extract_qna_from_markdown(str(kb_md_dir), str(kb_json_dir))
 
     assert total == 1
+    mock_user_prompt.compile.assert_called_once_with(
+        source="billing_policy.md",
+        category="billing_policy",
+        markdown_content="# Billing\n- Bills are generated monthly.",
+    )
     payload = json.loads(stale_json.read_text(encoding="utf-8"))
     assert payload[0]["question"] == "When are bills generated?"
     assert payload[0]["source"] == "billing_policy.md"
@@ -117,13 +131,27 @@ def test_run_full_ingestion_orchestrates_extract_then_ingest(mock_ingest_json, t
             ]
         )
     }
+    mock_user_prompt = MagicMock()
+    mock_user_prompt.compile.return_value = "Compiled extraction prompt"
 
     with patch("app.services.rag.ingestion.create_agent", return_value=mock_agent), patch(
         "app.services.rag.ingestion.ChatOpenAI"
+    ), patch(
+        "app.services.rag.ingestion.get_extraction_prompt",
+        return_value={
+            "system_prompt": "Extraction system prompt",
+            "user_prompt": mock_user_prompt,
+            "model_config": {"model": "gpt-4o-mini", "temperature": 0},
+        },
     ):
         generated_files, ingested_documents = run_full_ingestion(str(kb_md_dir), str(kb_json_dir))
 
     assert generated_files == 1
     assert ingested_documents == 4
+    mock_user_prompt.compile.assert_called_once_with(
+        source="service_plans.md",
+        category="service_plans",
+        markdown_content="# Plans\n- Basic plan",
+    )
     mock_ingest_json.assert_called_once_with(kb_json_dir=str(kb_json_dir))
     assert Path(kb_json_dir / "service_plans.json").exists()

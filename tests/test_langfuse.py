@@ -48,3 +48,30 @@ def test_get_agent_prompt(mock_get_client):
     mock_prompt.get_langchain_prompt.assert_called_once()
     # Verify compile was not called (variables are hardcoded in Langfuse)
     mock_prompt.compile.assert_not_called()
+
+
+@patch('app.prompts.langfuse.get_client')
+def test_get_extraction_prompt(mock_get_client):
+    """Test fetching extraction prompts and model config from Langfuse."""
+    reset_singleton()
+    mock_client = MagicMock()
+    mock_system_prompt = MagicMock()
+    mock_user_prompt = MagicMock()
+
+    mock_system_prompt.prompt = "You are an extraction assistant."
+    mock_system_prompt.config = {
+        "model": "gpt-4o-mini",
+        "temperature": 0
+    }
+    mock_client.get_prompt.side_effect = [mock_system_prompt, mock_user_prompt]
+    mock_get_client.return_value = mock_client
+
+    result = langfuse.get_extraction_prompt()
+
+    assert result["system_prompt"] == "You are an extraction assistant."
+    assert result["user_prompt"] == mock_user_prompt
+    assert result["model_config"]["model"] == "gpt-4o-mini"
+    assert result["model_config"]["temperature"] == 0
+    assert mock_client.get_prompt.call_count == 2
+    mock_client.get_prompt.assert_any_call(config.EXTRACTION_SYSTEM_PROMPT_NAME)
+    mock_client.get_prompt.assert_any_call(config.EXTRACTION_USER_PROMPT_NAME)
