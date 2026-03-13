@@ -92,7 +92,7 @@ async def test_chat_websocket_endpoint():
                     events.append(event)
                     if event.get("type") == "end":
                         break
-                except:
+                except Exception:
                     break
 
             # Should have received events

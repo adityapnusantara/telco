@@ -51,7 +51,7 @@ async def stream_chat(
 
 
 @router.websocket("/chat/stream/ws")
-async def stream_chat_websocket(websocket: WebSocket):
+async def stream_chat_websocket(websocket: WebSocket) -> None:
     """WebSocket endpoint for bidirectional chat streaming"""
     await websocket.accept()
 
@@ -61,4 +61,9 @@ async def stream_chat_websocket(websocket: WebSocket):
         await websocket.close(code=1011, reason="Services not initialized")
         return
 
-    await service.chat_websocket(websocket)
+    try:
+        await service.chat_websocket(websocket)
+    except Exception as e:
+        # Send error before closing
+        await websocket.send_json({"type": "error", "message": str(e)})
+        await websocket.close(code=1011, reason="Internal error")
