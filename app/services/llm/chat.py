@@ -125,7 +125,7 @@ class ChatService:
                 sources=None
             )
         last_message = messages_list[-1]
-        reply = last_message.content if hasattr(last_message, 'content') else str(last_message)
+        reply = last_message.content
 
         # Extract sources from tool results
         sources = self._extract_sources(result)
@@ -177,7 +177,7 @@ class ChatService:
                 if data and len(data) >= 1:
                     message_chunk = data[0]
                     # Only stream AIMessage content, skip ToolMessage (tool results)
-                    if hasattr(message_chunk, "content") and message_chunk.content:
+                    if message_chunk.content:
                         # Check if this is an AIMessage (not ToolMessage)
                         # ToolMessage has 'tool_call_id' attribute, AIMessage doesn't
                         if not hasattr(message_chunk, 'tool_call_id'):
