@@ -76,20 +76,17 @@ Provide JSON with:
 1. confidence_score (0.0-1.0): How confident is this answer? High confidence if sources found, answer is specific and complete. Low confidence if no sources, answer is vague, or user needs to be escalated.
 2. escalate (true/false): Should this escalate to human? True if: user asks for human, question cannot be answered, requires account changes, sensitive issue (legal, fraud, billing dispute).
 
-Return only JSON, no other text: {{"confidence_score": 0.8, "escalate": false}}"""
+Return only JSON: {{"confidence_score": 0.8, "escalate": false}}"""
 
-        try:
-            result = await self._classification_llm.ainvoke(prompt)
-            # Parse JSON result
-            parsed = json.loads(result.content)
-            return ReplyClassification(**parsed)
-        except Exception as e:
-            logger.error(f"Error in _classify_reply: {e}", exc_info=True)
-            # Fallback to heuristic classification
-            escalate_keywords = ["human agent", "speak to human", "representative", "escalate", "can't help", "unable to help"]
-            escalate = any(keyword.lower() in reply.lower() for keyword in escalate_keywords)
-            confidence_score = 0.8 if has_sources and not escalate else 0.5
-            return ReplyClassification(confidence_score=confidence_score, escalate=escalate)
+        result = self._classification_agent.invoke(
+            {"messages": [{"role": "user", "content": prompt}]},
+            config={
+                "callbacks": [self.handler.handler],
+                "metadata": {"langfuse_tags": ["classification"]}
+            }
+        )
+
+        return result["structured_response"]
 
     async def chat(self, message: str, conversation_history: list[dict], session_id: Optional[str] = None) -> ChatResponse:
         """Process a chat message using the RAG agent"""
