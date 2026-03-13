@@ -4,7 +4,7 @@ from unittest.mock import Mock, MagicMock, AsyncMock, patch
 from app.services.llm.chat import ChatService, ReplyClassification
 from app.services.llm.agent import Agent
 from app.services.llm.callbacks import CallbackHandler
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, ToolMessage
 
 
 def test_chat_service_init():
@@ -53,7 +53,13 @@ async def test_chat_service_chat_with_natural_text_response():
 
     # Mock agent returning natural text (not structured JSON)
     mock_agent.invoke.return_value = {
-        "messages": [AIMessage(content="You can check your balance in the MyTelco app.")]
+        "messages": [
+            ToolMessage(
+                content="[billing - billing_policy.md]: Question: How to check balance\nAnswer: Use MyTelco app",
+                tool_call_id="tool_call_1",
+            ),
+            AIMessage(content="You can check your balance in the MyTelco app."),
+        ]
     }
 
     mock_handler = Mock()
@@ -99,7 +105,13 @@ async def test_chat_service_chat_with_escalation():
     mock_agent = Mock()
 
     mock_agent.invoke.return_value = {
-        "messages": [AIMessage(content="I'm sorry, I cannot help with that. Please speak to a human.")]
+        "messages": [
+            ToolMessage(
+                content="[billing - billing_policy.md]: Question: Billing dispute\nAnswer: Within 30 days",
+                tool_call_id="tool_call_2",
+            ),
+            AIMessage(content="I'm sorry, I cannot help with that. Please speak to a human."),
+        ]
     }
 
     mock_handler = Mock()
@@ -177,6 +189,49 @@ async def test_chat_service_chat_handles_empty_messages():
     assert result.escalate is True
     assert result.confidence_score == 0.0
     assert result.sources is None
+
+
+@pytest.mark.asyncio
+async def test_chat_service_chat_no_sources_forces_escalation():
+    """No retrieval sources must force escalate=true without classifier."""
+    mock_agent = Mock()
+    mock_agent.invoke.return_value = {
+        "messages": [AIMessage(content="Potentially confident answer without sources.")]
+    }
+
+    mock_handler = Mock()
+    mock_handler.handler = Mock()
+
+    with \
+         patch('app.services.llm.chat.get_classification_prompt') as mock_get_classification_prompt, \
+         patch('app.services.llm.chat.ChatOpenAI') as mock_chat_openai, \
+         patch('app.services.llm.chat.create_agent') as mock_create_agent:
+
+        mock_user_prompt_obj = MagicMock()
+        mock_user_prompt_obj.compile.return_value = "Compiled classification user prompt"
+
+        mock_get_classification_prompt.return_value = {
+            "system_prompt": "You are a customer service response classifier. Analyze replies and provide metadata.",
+            "user_prompt": mock_user_prompt_obj,
+            "model_config": {"model": "gpt-4o", "temperature": 0}
+        }
+        mock_llm = MagicMock()
+        mock_chat_openai.return_value = mock_llm
+        mock_agent_instance = MagicMock()
+        mock_create_agent.return_value = mock_agent_instance
+
+        service = ChatService(agent=mock_agent, handler=mock_handler)
+
+    # Should not classify when no sources are found.
+    service._classify_reply = AsyncMock()
+
+    result = await service.chat("Unknown policy question?", [], "conv-no-sources")
+
+    assert result.escalate is True
+    assert result.confidence_score == 0.0
+    assert result.sources is None
+    assert "couldn't find relevant information" in result.reply.lower()
+    service._classify_reply.assert_not_called()
 
 
 def test_extract_sources_returns_none_when_empty():

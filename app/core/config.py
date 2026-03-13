@@ -16,6 +16,8 @@ class Config:
     AGENT_PROMPT_NAME: str = os.getenv("AGENT_PROMPT_NAME", "telco-customer-service-agent")
     CLASSIFICATION_SYSTEM_PROMPT_NAME: str = os.getenv("CLASSIFICATION_SYSTEM_PROMPT_NAME", "telco-customer-service-classification-user")
     CLASSIFICATION_USER_PROMPT_NAME: str = os.getenv("CLASSIFICATION_USER_PROMPT_NAME", "telco-customer-service-classification-system")
+    EXTRACTION_SYSTEM_PROMPT_NAME: str = os.getenv("EXTRACTION_SYSTEM_PROMPT_NAME", "telco-kb-extraction-system")
+    EXTRACTION_USER_PROMPT_NAME: str = os.getenv("EXTRACTION_USER_PROMPT_NAME", "telco-kb-extraction-user")
 
     # Qdrant
     QDRANT_URL: str = os.getenv("QDRANT_URL", "")
@@ -25,6 +27,7 @@ class Config:
     # Embeddings
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
     EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "1536"))
+    EXTRACTION_MODEL: str = os.getenv("EXTRACTION_MODEL", "gpt-4o-mini")
 
     # App
     APP_ENV: str = os.getenv("APP_ENV", "development")
