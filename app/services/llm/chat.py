@@ -1,3 +1,4 @@
+import json
 import re
 from pydantic import BaseModel
 from typing import Optional
@@ -59,6 +60,63 @@ class ChatService:
             confidence_score=structured.confidence_score,
             sources=sources
         )
+
+    async def chat_stream(self, message: str, conversation_history: list[dict], session_id: Optional[str] = None):
+        """Stream chat response via Server-Sent Events.
+
+        Yields SSE-formatted strings:
+        - Token events: "data: {"type": "token", "content": "..."}\n\n"
+        - End event: "data: {"type": "end", "reply": "...", "confidence_score": 0.8, "escalate": false, "sources": [...]}\n\n"
+        """
+        # Prepare messages (same as chat method)
+        messages = conversation_history.copy()
+        messages.append({"role": "user", "content": message})
+
+        lc_messages = []
+        for msg in messages:
+            if msg["role"] == "user":
+                lc_messages.append(HumanMessage(content=msg["content"]))
+            else:
+                lc_messages.append(AIMessage(content=msg["content"]))
+
+        config = {
+            "callbacks": [self.handler.handler],
+            "metadata": {
+                "langfuse_session_id": session_id or "default",
+                "langfuse_tags": ["chat", "telco-agent", "stream"]
+            }
+        }
+
+        full_reply = ""
+
+        # Stream tokens from agent
+        async for message_chunk, metadata in self.agent.astream({"messages": lc_messages}, config):
+            if message_chunk.text:
+                full_reply += message_chunk.text
+                yield f"data: {json.dumps({'type': 'token', 'content': message_chunk.text})}\n\n"
+
+        # Extract sources from the final result (need to get full result)
+        # For now, we'll re-invoke to get the full result with tool outputs
+        # This is not ideal but works for the simple case
+        result = self.agent.invoke({"messages": lc_messages}, config)
+        sources = self._extract_sources(result)
+
+        # Determine escalate based on keywords in reply
+        escalate_keywords = ["human agent", "speak to human", "representative", "escalate"]
+        escalate = any(keyword.lower() in full_reply.lower() for keyword in escalate_keywords)
+
+        # Heuristic confidence score
+        confidence_score = 0.8 if sources else 0.5
+
+        # Send final end event
+        end_event = {
+            "type": "end",
+            "reply": full_reply,
+            "confidence_score": confidence_score,
+            "escalate": escalate,
+            "sources": sources
+        }
+        yield f"data: {json.dumps(end_event)}\n\n"
 
     def _extract_sources(self, result: dict) -> Optional[list[str]]:
         """Extract source document names from retriever tool calls"""
