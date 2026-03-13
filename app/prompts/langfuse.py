@@ -70,7 +70,7 @@ def get_classification_config() -> dict:
     Returns config from telco-customer-service-classification-user prompt.
     """
     client = get_langfuse_client()
-    config_prompt = client.get_prompt("telco-customer-service-classification-user")
+    config_prompt = client.get_prompt("telco-customer-service-classification-system")
     return config_prompt.config
 
 
