@@ -151,7 +151,7 @@ async def test_chat_stream_handles_errors():
         if event_data.get("type") == "error":
             break
 
-    # Assert - should have error event
+    # Assert - should have error event with generic message (security: no raw exceptions exposed)
     assert len(events) > 0
     assert events[0]["type"] == "error"
-    assert "LLM error" in events[0]["message"]
+    assert events[0]["message"] == "An error occurred while processing your request. Please try again."

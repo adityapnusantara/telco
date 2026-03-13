@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 from collections.abc import AsyncIterator
 from pydantic import BaseModel
@@ -8,6 +9,8 @@ from fastapi import WebSocket
 from langchain_core.messages import HumanMessage, AIMessage
 from .agent import Agent
 from .callbacks import CallbackHandler
+
+logger = logging.getLogger(__name__)
 
 
 class ChatResponse(BaseModel):
@@ -128,10 +131,12 @@ class ChatService:
             yield f"data: {json.dumps(end_event)}\n\n"
 
         except Exception as e:
-            # Send error event
+            # Log the actual error for debugging
+            logger.error(f"Error in chat_stream: {e}", exc_info=True)
+            # Send generic error event to client (don't expose raw exceptions)
             error_event = {
                 "type": "error",
-                "message": str(e)
+                "message": "An error occurred while processing your request. Please try again."
             }
             yield f"data: {json.dumps(error_event)}\n\n"
 
@@ -220,7 +225,13 @@ class ChatService:
             })
 
         except Exception as e:
-            await websocket.send_json({"type": "error", "message": str(e)})
+            # Log the actual error for debugging
+            logger.error(f"Error in chat_websocket: {e}", exc_info=True)
+            # Send generic error event to client (don't expose raw exceptions)
+            await websocket.send_json({
+                "type": "error",
+                "message": "An error occurred while processing your request. Please try again."
+            })
 
     def _extract_sources(self, result: dict) -> Optional[list[str]]:
         """Extract source document names from retriever tool calls"""
