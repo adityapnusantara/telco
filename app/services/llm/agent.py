@@ -42,7 +42,7 @@ class Agent:
             response_format=StructuredChatResponse
         )
 
-    def invoke(self, messages, config):
+    def invoke(self, messages: dict[str, Any], config: dict[str, Any]) -> Any:
         """Invoke the agent with messages and config"""
         return self._agent.invoke(messages, config)
 
