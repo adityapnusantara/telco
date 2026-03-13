@@ -170,15 +170,19 @@ class ChatService:
 
             full_reply = ""
 
-            # Stream tokens from agent
+            # Stream tokens from agent (only AIMessage, skip ToolMessage)
             async for chunk in self.agent.astream({"messages": lc_messages}, config):
                 # chunk is a dict with 'data' key containing (AIMessageChunk, metadata) tuple
                 data = chunk.get("data")
                 if data and len(data) >= 1:
                     message_chunk = data[0]
+                    # Only stream AIMessage content, skip ToolMessage (tool results)
                     if hasattr(message_chunk, "content") and message_chunk.content:
-                        full_reply += message_chunk.content
-                        yield f"data: {json.dumps({'type': 'token', 'content': message_chunk.content})}\n\n"
+                        # Check if this is an AIMessage (not ToolMessage)
+                        # ToolMessage has 'tool_call_id' attribute, AIMessage doesn't
+                        if not hasattr(message_chunk, 'tool_call_id'):
+                            full_reply += message_chunk.content
+                            yield f"data: {json.dumps({'type': 'token', 'content': message_chunk.content})}\n\n"
 
             # Extract sources from the final result (need to get full result)
             # For now, we'll re-invoke to get the full result with tool outputs
@@ -272,9 +276,13 @@ class ChatService:
                 data = chunk.get("data")
                 if data and len(data) >= 1:
                     message_chunk = data[0]
+                    # Only stream AIMessage content, skip ToolMessage (tool results)
                     if hasattr(message_chunk, "content") and message_chunk.content:
-                        full_reply += message_chunk.content
-                        await websocket.send_json({"type": "token", "content": message_chunk.content})
+                        # Check if this is an AIMessage (not ToolMessage)
+                        # ToolMessage has 'tool_call_id' attribute, AIMessage doesn't
+                        if not hasattr(message_chunk, 'tool_call_id'):
+                            full_reply += message_chunk.content
+                            await websocket.send_json({"type": "token", "content": message_chunk.content})
 
             # Get final result for sources
             result = self.agent.invoke({"messages": lc_messages}, config)
