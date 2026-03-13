@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from collections.abc import AsyncIterator
@@ -122,6 +123,93 @@ class ChatService:
             "sources": sources
         }
         yield f"data: {json.dumps(end_event)}\n\n"
+
+    async def chat_websocket(self, websocket, session_id: Optional[str] = None):
+        """Handle WebSocket chat communication.
+
+        Receives messages via websocket.receive_json():
+        - {"type": "message", "message": "...", "conversation_history": [...]}
+        - {"type": "cancel"}
+
+        Sends responses via websocket.send_json():
+        - {"type": "token", "content": "..."}
+        - {"type": "end", "reply": "...", "confidence_score": 0.8, "escalate": false, "sources": [...]}
+        - {"type": "error", "message": "..."}
+        """
+        try:
+            # Receive initial message
+            data = await websocket.receive_json()
+
+            if data.get("type") == "cancel":
+                await websocket.send_json({"type": "end", "reply": "", "cancelled": True})
+                return
+
+            if data.get("type") != "message":
+                await websocket.send_json({"type": "error", "message": "Expected message type"})
+                return
+
+            message = data.get("message", "")
+            conversation_history = data.get("conversation_history", [])
+            session_id = data.get("session_id") or session_id
+
+            # Prepare messages
+            messages = conversation_history.copy()
+            messages.append({"role": "user", "content": message})
+
+            lc_messages = []
+            for msg in messages:
+                if msg["role"] == "user":
+                    lc_messages.append(HumanMessage(content=msg["content"]))
+                else:
+                    lc_messages.append(AIMessage(content=msg["content"]))
+
+            config = {
+                "callbacks": [self.handler.handler],
+                "metadata": {
+                    "langfuse_session_id": session_id or "default",
+                    "langfuse_tags": ["chat", "telco-agent", "websocket"]
+                }
+            }
+
+            full_reply = ""
+
+            # Stream tokens
+            async for chunk in self.agent.astream({"messages": lc_messages}, config):
+                # Check for cancel
+                try:
+                    cancel_msg = await asyncio.wait_for(websocket.receive_json(), timeout=0.01)
+                    if cancel_msg.get("type") == "cancel":
+                        await websocket.send_json({"type": "end", "reply": full_reply, "cancelled": True})
+                        return
+                except asyncio.TimeoutError:
+                    pass
+
+                data = chunk.get("data")
+                if data and len(data) >= 1:
+                    message_chunk = data[0]
+                    if hasattr(message_chunk, "content") and message_chunk.content:
+                        full_reply += message_chunk.content
+                        await websocket.send_json({"type": "token", "content": message_chunk.content})
+
+            # Get final result for sources
+            result = self.agent.invoke({"messages": lc_messages}, config)
+            sources = self._extract_sources(result)
+
+            # Determine escalate
+            escalate_keywords = ["human agent", "speak to human", "representative", "escalate"]
+            escalate = any(keyword.lower() in full_reply.lower() for keyword in escalate_keywords)
+            confidence_score = 0.8 if sources else 0.5
+
+            await websocket.send_json({
+                "type": "end",
+                "reply": full_reply,
+                "confidence_score": confidence_score,
+                "escalate": escalate,
+                "sources": sources
+            })
+
+        except Exception as e:
+            await websocket.send_json({"type": "error", "message": str(e)})
 
     def _extract_sources(self, result: dict) -> Optional[list[str]]:
         """Extract source document names from retriever tool calls"""

@@ -1,7 +1,7 @@
 # tests/test_chat.py
 import pytest
 import json
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, AsyncMock
 from app.services.llm.chat import ChatService
 from app.services.llm.agent import Agent
 from app.services.llm.callbacks import CallbackHandler
@@ -67,3 +67,59 @@ async def test_chat_stream_yields_sse_events():
     assert "escalate" in events[-1]
     # Verify astream was called
     assert len(astream_called) > 0
+
+
+@pytest.mark.asyncio
+async def test_chat_websocket_yields_json_events():
+    """ChatService.chat_websocket() should handle websocket communication"""
+    # Arrange - minimal setup with mocks
+    mock_agent = Mock()
+    mock_handler = Mock()
+    mock_handler.handler = Mock()
+
+    service = ChatService(agent=mock_agent, handler=mock_handler)
+
+    # Mock websocket
+    websocket = MagicMock()
+    websocket.receive_json = AsyncMock(return_value={
+        "type": "message",
+        "message": "Hello",
+        "session_id": "test123",
+        "conversation_history": []
+    })
+    websocket.send_json = AsyncMock()
+
+    # Track if astream was called
+    astream_called = []
+    full_reply_chunks = ["Hello", " there", "!"]
+
+    # Setup async generator for agent.astream
+    async def mock_astream_generator(*args, **kwargs):
+        astream_called.append(True)
+        for chunk_text in full_reply_chunks:
+            message_chunk = Mock()
+            message_chunk.content = chunk_text
+            yield {"type": "messages", "ns": (), "data": (message_chunk, {})}
+
+    mock_agent.astream = mock_astream_generator
+
+    # Mock invoke for the final result
+    mock_agent.invoke.return_value = {
+        "messages": [AIMessage(content="Hello there!")]
+    }
+
+    # Act
+    await service.chat_websocket(websocket)
+
+    # Assert - should have sent events
+    assert websocket.send_json.call_count > 0
+
+    # First event should be token or end
+    first_call = websocket.send_json.call_args_list[0][0][0]
+    assert "type" in first_call
+    assert first_call["type"] in ["token", "end"]
+
+    # Last event should be end
+    last_call = websocket.send_json.call_args_list[-1][0][0]
+    assert last_call["type"] == "end"
+    assert "reply" in last_call
