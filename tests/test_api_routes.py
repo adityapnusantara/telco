@@ -1,7 +1,7 @@
 import pytest
 import json
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock
 from app.api.routes.chat import router
 from app.api.models import ChatRequest
 

@@ -38,7 +38,7 @@ async def create_chat(
 async def stream_chat(
     request: ChatRequest,
     service: ChatService = Depends(get_chat_service)
-):
+) -> StreamingResponse:
     """Chat endpoint with SSE streaming for real-time token responses"""
     return StreamingResponse(
         service.chat_stream(
