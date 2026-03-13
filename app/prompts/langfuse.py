@@ -14,40 +14,30 @@ def get_langfuse_client():
     return get_client()
 
 
-def get_system_prompt(prompt_name: str = None):
+def get_system_prompt():
     """
     Fetch the system prompt from Langfuse Prompt Management.
-
-    Args:
-        prompt_name: Name of the prompt in Langfuse. Defaults to config.SYSTEM_PROMPT_NAME
 
     Returns:
         List of message dicts for LangChain
     """
-    if prompt_name is None:
-        prompt_name = config.SYSTEM_PROMPT_NAME
     client = get_langfuse_client()
-    prompt = client.get_prompt(prompt_name, type="chat")
+    prompt = client.get_prompt(config.SYSTEM_PROMPT_NAME, type="chat")
 
     # Get LangChain-compatible prompt without variable substitution
     # (variables are hardcoded in Langfuse prompt)
     return prompt.get_langchain_prompt()
 
 
-def get_model_config(prompt_name: str = None):
+def get_model_config():
     """
     Fetch the model config from Langfuse Prompt Management.
-
-    Args:
-        prompt_name: Name of the prompt in Langfuse. Defaults to config.SYSTEM_PROMPT_NAME
 
     Returns:
         Dict with model configuration (model, temperature)
     """
-    if prompt_name is None:
-        prompt_name = config.SYSTEM_PROMPT_NAME
     client = get_langfuse_client()
-    prompt = client.get_prompt(prompt_name, type="chat")
+    prompt = client.get_prompt(config.SYSTEM_PROMPT_NAME, type="chat")
 
     # Get config from Langfuse prompt
     cfg = prompt.config

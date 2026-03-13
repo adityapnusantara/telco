@@ -32,11 +32,11 @@ def test_get_system_prompt(mock_get_client):
     mock_client.get_prompt.return_value = mock_prompt
     mock_get_client.return_value = mock_client
 
-    prompt = langfuse.get_system_prompt("telco-customer-service-agent")
+    prompt = langfuse.get_system_prompt()
 
     assert prompt == expected_prompt
     mock_client.get_prompt.assert_called_once_with(
-        "telco-customer-service-agent",
+        config.SYSTEM_PROMPT_NAME,
         type="chat"
     )
     # Verify get_langchain_prompt was called
@@ -60,12 +60,12 @@ def test_get_model_config(mock_get_client):
     mock_client.get_prompt.return_value = mock_prompt
     mock_get_client.return_value = mock_client
 
-    model_config = langfuse.get_model_config("telco-customer-service-agent")
+    model_config = langfuse.get_model_config()
 
     assert model_config["model"] == "gpt-4o"
     assert model_config["temperature"] == 0
     mock_client.get_prompt.assert_called_once_with(
-        "telco-customer-service-agent",
+        config.SYSTEM_PROMPT_NAME,
         type="chat"
     )
 
@@ -82,7 +82,7 @@ def test_get_model_config_with_fallback(mock_get_client):
     mock_client.get_prompt.return_value = mock_prompt
     mock_get_client.return_value = mock_client
 
-    model_config = langfuse.get_model_config("telco-customer-service-agent")
+    model_config = langfuse.get_model_config()
 
     # Should use fallback values from config.py
     assert model_config["model"] == config.DEFAULT_MODEL
