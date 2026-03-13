@@ -46,13 +46,17 @@ class ChatService:
             temperature=model_config["temperature"]
         )
 
-        # Compile the prompt template to get a string
-        system_prompt_str = self._classification_prompt_obj.compile()
+        # System prompt for classification agent (static, no variables)
+        classification_system_prompt = (
+            "You are a customer service response classifier. "
+            "Analyze replies and provide metadata about confidence and escalation needs. "
+            "Always respond with valid JSON matching the required schema."
+        )
 
         self._classification_agent = create_agent(
             model=classification_llm,
             tools=[],  # Empty - no tools needed for classification
-            system_prompt=system_prompt_str,
+            system_prompt=classification_system_prompt,
             response_format=ReplyClassification
         )
 
@@ -66,23 +70,21 @@ class ChatService:
         Returns:
             ReplyClassification with confidence_score and escalate
         """
-        prompt = f"""Analyze the following customer service reply and provide metadata.
-
-Reply: "{reply[:1000]}"
-
-Context: {'Sources found from knowledge base' if has_sources else 'No sources available from knowledge base'}
-
-Provide JSON with:
-1. confidence_score (0.0-1.0): How confident is this answer? High confidence if sources found, answer is specific and complete. Low confidence if no sources, answer is vague, or user needs to be escalated.
-2. escalate (true/false): Should this escalate to human? True if: user asks for human, question cannot be answered, requires account changes, sensitive issue (legal, fraud, billing dispute).
-
-Return only JSON: {{"confidence_score": 0.8, "escalate": false}}"""
+        # Compile prompt with variables
+        context = 'Sources found from knowledge base' if has_sources else 'No sources available from knowledge base'
+        compiled_prompt = self._classification_prompt_obj.compile(
+            reply=reply,
+            context=context
+        )
 
         result = self._classification_agent.invoke(
-            {"messages": [{"role": "user", "content": prompt}]},
+            {"messages": [{"role": "user", "content": compiled_prompt}]},
             config={
                 "callbacks": [self.handler.handler],
-                "metadata": {"langfuse_tags": ["classification"]}
+                "metadata": {
+                    "langfuse_tags": ["classification", "metadata-extraction"],
+                    "classification_task": "reply_metadata"
+                }
             }
         )
 

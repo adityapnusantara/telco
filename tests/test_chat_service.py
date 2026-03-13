@@ -18,7 +18,7 @@ def test_chat_service_init():
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
         mock_prompt_obj = MagicMock()
-        mock_prompt_obj.compile.return_value = "Compiled classification system prompt"
+        mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
         mock_llm = MagicMock()
@@ -33,8 +33,15 @@ def test_chat_service_init():
         assert service._classification_agent == mock_agent_instance
         assert service._classification_prompt_obj == mock_prompt_obj
 
-        # Verify compile() was called on the prompt object
-        mock_prompt_obj.compile.assert_called_once()
+        # Verify compile() was NOT called in __init__ (only called in _classify_reply)
+        mock_prompt_obj.compile.assert_not_called()
+
+        # Verify create_agent was called with static system prompt string (not the prompt object)
+        mock_create_agent.assert_called_once()
+        call_kwargs = mock_create_agent.call_args.kwargs
+        assert isinstance(call_kwargs["system_prompt"], str)
+        assert "customer service response classifier" in call_kwargs["system_prompt"].lower()
+        assert call_kwargs["tools"] == []
 
 
 @pytest.mark.asyncio
@@ -56,7 +63,7 @@ async def test_chat_service_chat_with_natural_text_response():
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
         mock_prompt_obj = MagicMock()
-        mock_prompt_obj.compile.return_value = "Compiled classification system prompt"
+        mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
         mock_llm = MagicMock()
@@ -98,7 +105,7 @@ async def test_chat_service_chat_with_escalation():
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
         mock_prompt_obj = MagicMock()
-        mock_prompt_obj.compile.return_value = "Compiled classification system prompt"
+        mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
         mock_llm = MagicMock()
@@ -139,7 +146,7 @@ async def test_chat_service_chat_handles_empty_messages():
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
         mock_prompt_obj = MagicMock()
-        mock_prompt_obj.compile.return_value = "Compiled classification system prompt"
+        mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
         mock_llm = MagicMock()
@@ -170,7 +177,7 @@ def test_extract_sources_returns_none_when_empty():
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
         mock_prompt_obj = MagicMock()
-        mock_prompt_obj.compile.return_value = "Compiled classification system prompt"
+        mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
         mock_llm = MagicMock()
@@ -199,7 +206,7 @@ def test_extract_sources_extracts_from_tool_message():
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
         mock_prompt_obj = MagicMock()
-        mock_prompt_obj.compile.return_value = "Compiled classification system prompt"
+        mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
         mock_llm = MagicMock()
@@ -236,7 +243,7 @@ def test_extract_sources_handles_multiple_sources():
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
         mock_prompt_obj = MagicMock()
-        mock_prompt_obj.compile.return_value = "Compiled classification system prompt"
+        mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
         mock_llm = MagicMock()
