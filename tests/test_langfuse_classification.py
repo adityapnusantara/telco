@@ -6,7 +6,7 @@ from app.prompts.langfuse import get_classification_prompt_obj, get_classificati
 def reset_singleton():
     """Reset the Langfuse client singleton between tests"""
     from app.prompts import langfuse
-    langfuse._langfuse_client = None
+    langfuse.get_langfuse_client.cache_clear()
 
 
 def test_get_classification_prompt_obj():

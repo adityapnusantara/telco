@@ -13,6 +13,7 @@ class Config:
     LANGFUSE_BASE_URL: str = os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com")
 
     # Langfuse Prompt Names
+    SYSTEM_PROMPT_NAME: str = os.getenv("SYSTEM_PROMPT_NAME", "telco-customer-service-agent")
     CLASSIFICATION_SYSTEM_PROMPT_NAME: str = os.getenv("CLASSIFICATION_SYSTEM_PROMPT_NAME", "telco-customer-service-classification-user")
     CLASSIFICATION_CONFIG_PROMPT_NAME: str = os.getenv("CLASSIFICATION_CONFIG_PROMPT_NAME", "telco-customer-service-classification-user")
     CLASSIFICATION_USER_PROMPT_NAME: str = os.getenv("CLASSIFICATION_USER_PROMPT_NAME", "telco-customer-service-classification-system")

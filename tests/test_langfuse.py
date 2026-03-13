@@ -4,7 +4,7 @@ from app.core.config import config
 
 def reset_singleton():
     """Reset the Langfuse client singleton between tests"""
-    langfuse._langfuse_client = None
+    langfuse.get_langfuse_client.cache_clear()
 
 def test_get_langfuse_client():
     """Test Langfuse client initialization"""
