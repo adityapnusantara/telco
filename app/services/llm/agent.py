@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from typing import Any
+
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
@@ -39,6 +42,19 @@ class Agent:
             response_format=StructuredChatResponse
         )
 
-    def invoke(self, messages, config):
+    def invoke(self, messages: dict[str, Any], config: dict[str, Any]) -> Any:
         """Invoke the agent with messages and config"""
         return self._agent.invoke(messages, config)
+
+    async def astream(self, messages: dict[str, Any], config: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
+        """Stream agent responses token-by-token.
+
+        Yields chunks from LangChain's astream with stream_mode="messages".
+        """
+        async for chunk in self._agent.astream(
+            messages,
+            config,
+            stream_mode="messages",
+            version="v2"
+        ):
+            yield chunk
