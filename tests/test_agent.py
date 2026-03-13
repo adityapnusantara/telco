@@ -15,15 +15,15 @@ def test_agent_init():
     mock_retriever_tool.tool = Mock()
 
     with patch('app.services.llm.agent.ChatOpenAI') as mock_llm_class, \
-         patch('app.services.llm.agent.get_system_prompt') as mock_prompt, \
-         patch('app.services.llm.agent.get_model_config') as mock_model_config, \
+         patch('app.services.llm.agent.get_agent_prompt') as mock_prompt, \
          patch('app.services.llm.agent.create_agent') as mock_create_agent:
         mock_llm = MagicMock()
         mock_llm_class.return_value = mock_llm
-        # get_system_prompt returns a compiled string, not list of dict
-        mock_prompt.return_value = "You are a helpful assistant"
-        # get_model_config returns model configuration
-        mock_model_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        # get_agent_prompt returns a dict with system_prompt and model_config
+        mock_prompt.return_value = {
+            "system_prompt": [{"role": "system", "content": "You are a helpful assistant"}],
+            "model_config": {"model": "gpt-4o", "temperature": 0}
+        }
         mock_agent_instance = MagicMock()
         mock_create_agent.return_value = mock_agent_instance
 
@@ -38,7 +38,7 @@ def test_agent_init():
         assert "model" in call_kwargs
         assert "tools" in call_kwargs
         assert "system_prompt" in call_kwargs
-        assert call_kwargs["system_prompt"] == "You are a helpful assistant"
+        assert call_kwargs["system_prompt"] == [{"role": "system", "content": "You are a helpful assistant"}]
         # response_format should NOT be present (removed for natural text output)
         assert "response_format" not in call_kwargs
 
@@ -50,13 +50,13 @@ def test_agent_invoke():
     mock_retriever_tool.tool = Mock()
 
     with patch('app.services.llm.agent.ChatOpenAI'), \
-         patch('app.services.llm.agent.get_system_prompt') as mock_prompt, \
-         patch('app.services.llm.agent.get_model_config') as mock_model_config, \
+         patch('app.services.llm.agent.get_agent_prompt') as mock_prompt, \
          patch('app.services.llm.agent.create_agent') as mock_create_agent:
-        # get_system_prompt returns a compiled string
-        mock_prompt.return_value = "You are a helpful assistant"
-        # get_model_config returns model configuration
-        mock_model_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        # get_agent_prompt returns a dict with system_prompt and model_config
+        mock_prompt.return_value = {
+            "system_prompt": [{"role": "system", "content": "You are a helpful assistant"}],
+            "model_config": {"model": "gpt-4o", "temperature": 0}
+        }
         mock_agent_instance = MagicMock()
         mock_create_agent.return_value = mock_agent_instance
 
@@ -78,13 +78,13 @@ def test_agent_with_retriever_tool():
     mock_retriever_tool.tool = Mock()
 
     with patch('app.services.llm.agent.ChatOpenAI'), \
-         patch('app.services.llm.agent.get_system_prompt') as mock_prompt, \
-         patch('app.services.llm.agent.get_model_config') as mock_model_config, \
+         patch('app.services.llm.agent.get_agent_prompt') as mock_prompt, \
          patch('app.services.llm.agent.create_agent') as mock_create_agent:
-        # get_system_prompt returns a compiled string
-        mock_prompt.return_value = "You are a helpful assistant"
-        # get_model_config returns model configuration
-        mock_model_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        # get_agent_prompt returns a dict with system_prompt and model_config
+        mock_prompt.return_value = {
+            "system_prompt": [{"role": "system", "content": "You are a helpful assistant"}],
+            "model_config": {"model": "gpt-4o", "temperature": 0}
+        }
         mock_agent_instance = MagicMock()
         mock_create_agent.return_value = mock_agent_instance
 
@@ -107,13 +107,13 @@ async def test_agent_astream_yields_tokens():
     mock_retriever_tool.tool = Mock()
 
     with patch('app.services.llm.agent.ChatOpenAI'), \
-         patch('app.services.llm.agent.get_system_prompt') as mock_prompt, \
-         patch('app.services.llm.agent.get_model_config') as mock_model_config, \
+         patch('app.services.llm.agent.get_agent_prompt') as mock_prompt, \
          patch('app.services.llm.agent.create_agent') as mock_create_agent:
-        # get_system_prompt returns a compiled string
-        mock_prompt.return_value = "You are a helpful assistant"
-        # get_model_config returns model configuration
-        mock_model_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        # get_agent_prompt returns a dict with system_prompt and model_config
+        mock_prompt.return_value = {
+            "system_prompt": [{"role": "system", "content": "You are a helpful assistant"}],
+            "model_config": {"model": "gpt-4o", "temperature": 0}
+        }
 
         # Create mock agent instance with astream method
         mock_agent_instance = MagicMock()
@@ -144,4 +144,3 @@ async def test_agent_astream_yields_tokens():
         assert len(tokens) > 0
         # Verify the mock agent's astream was called
         assert len(astream_called) > 0
-

@@ -48,7 +48,7 @@ class ChatService:
         self._classification_agent = create_agent(
             model=classification_llm,
             tools=[],  # Empty - no tools needed for classification
-            system_prompt=self._classification_prompt["system_prompt"].prompt,  # Use raw prompt template for classification
+            system_prompt=self._classification_prompt["system_prompt"],  # Use raw prompt template for classification
             response_format=ReplyClassification
         )
 
@@ -136,9 +136,9 @@ class ChatService:
         """Stream chat response via Server-Sent Events.
 
         Yields SSE-formatted strings:
-        - Token events: "data: {"type": "token", "content": "..."}\n\n"
-        - End event: "data: {"type": "end", "reply": "...", "confidence_score": 0.8, "escalate": false, "sources": [...]}\n\n"
-        - Error event: "data: {"type": "error", "message": "..."}\n\n"
+        - Token events: "data: {"type": "token", "content": "..."}\\n\\n"
+        - End event: "data: {"type": "end", "reply": "...", "confidence_score": 0.8, "escalate": false, "sources": [...]}\\n\\n"
+        - Error event: "data: {"type": "error", "message": "..."}\\n\\n"
         """
         try:
             # Prepare messages (same as chat method)
@@ -178,7 +178,6 @@ class ChatService:
 
             # Extract sources from the final result (need to get full result)
             # For now, we'll re-invoke to get the full result with tool outputs
-            # This is not ideal but works for the simple case
             result = self.agent.invoke({"messages": lc_messages}, config)
             sources = self._extract_sources(result)
 

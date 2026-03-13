@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 
 def test_app_exists():
-    """Test that the FastAPI app can be imported"""
+    """Test that FastAPI app can be imported"""
     from app.main import app
     assert app is not None
 
@@ -26,7 +26,7 @@ def test_health_endpoint(client):
 @patch("app.services.rag.vector_store.OpenAIEmbeddings")
 @patch("app.services.rag.vector_store.QdrantClient")
 @patch("app.services.llm.agent.ChatOpenAI")
-@patch("app.services.llm.agent.get_system_prompt")
+@patch("app.services.llm.agent.get_agent_prompt")
 @patch("app.services.llm.agent.create_agent")
 @patch("app.services.llm.callbacks.LangfuseCallbackHandler")
 def test_startup_creates_services(
@@ -52,7 +52,11 @@ def test_startup_creates_services(
     mock_langfuse_cb.return_value = mock_langfuse_handler_instance
     mock_agent_instance = MagicMock()
     mock_create_agent.return_value = mock_agent_instance
-    mock_get_prompt.return_value = [{"content": "You are a helpful assistant"}]
+    # get_agent_prompt returns a dict with system_prompt and model_config
+    mock_get_prompt.return_value = {
+        "system_prompt": [{"content": "You are a helpful assistant"}],
+        "model_config": {"model": "gpt-4o", "temperature": 0}
+    }
 
     with TestClient(app) as client:
         assert hasattr(app.state, 'vector_store')
