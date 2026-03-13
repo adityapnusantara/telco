@@ -1,6 +1,6 @@
 from pydantic import ValidationError
 import pytest
-from app.services.rag.models import QNADocument
+from app.services.rag.models import QNADocument, QNAExtractionResult
 
 def test_qna_document_valid():
     """Test creating a valid Q&A document"""
@@ -22,3 +22,9 @@ def test_qna_document_missing_required_field():
             question="Test question?"
             # missing answer, source, category
         )
+
+
+def test_qna_extraction_result_defaults_to_empty_items():
+    """Test extraction result schema default values."""
+    result = QNAExtractionResult()
+    assert result.items == []

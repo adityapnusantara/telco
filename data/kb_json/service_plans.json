@@ -1,0 +1,26 @@
+[
+  {
+    "question": "What does the Basic Plan include?",
+    "answer": "Basic Plan costs IDR 99,000/month and includes 10GB data and unlimited calls.",
+    "source": "service_plans.md",
+    "category": "service_plans"
+  },
+  {
+    "question": "What does the Pro Plan include?",
+    "answer": "Pro Plan costs IDR 199,000/month and includes 50GB data, unlimited calls, and 5GB hotspot.",
+    "source": "service_plans.md",
+    "category": "service_plans"
+  },
+  {
+    "question": "What does the Unlimited Plan include?",
+    "answer": "Unlimited Plan costs IDR 299,000/month and includes unlimited data, calls, and 20GB hotspot.",
+    "source": "service_plans.md",
+    "category": "service_plans"
+  },
+  {
+    "question": "Do plans include streaming partner access?",
+    "answer": "Yes, all plans include free access to streaming partners on weekends.",
+    "source": "service_plans.md",
+    "category": "service_plans"
+  }
+]

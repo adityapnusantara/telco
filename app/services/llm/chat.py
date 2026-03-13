@@ -122,6 +122,19 @@ class ChatService:
         # Extract sources from tool results
         sources = self._extract_sources(result)
 
+        # Hard rule for assignment requirement:
+        # if no relevant retrieval context, always escalate.
+        if not sources:
+            return ChatResponse(
+                reply=(
+                    "I'm sorry, I couldn't find relevant information in our knowledge base "
+                    "to answer that. Please contact a human agent via call 123 or the MyTelco app."
+                ),
+                escalate=True,
+                confidence_score=0.0,
+                sources=None,
+            )
+
         # Classify metadata using LLM
         classification = await self._classify_reply(reply, has_sources=bool(sources))
 
