@@ -9,7 +9,7 @@ from fastapi import WebSocket
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
-from app.prompts.langfuse import get_system_prompt, get_model_config, get_classification_prompt_obj, get_classification_config
+from app.prompts.langfuse import get_classification_prompt
 from .agent import Agent
 from .callbacks import CallbackHandler
 
@@ -38,25 +38,17 @@ class ChatService:
         self.handler = handler
 
         # Classification Agent - create_agent with empty tools list
-        self._classification_prompt_obj = get_classification_prompt_obj()
-        model_config = get_classification_config()
+        self._classification_prompt = get_classification_prompt()
 
         classification_llm = ChatOpenAI(
-            model=model_config["model"],
-            temperature=model_config["temperature"]
-        )
-
-        # System prompt for classification agent (static, no variables)
-        classification_system_prompt = (
-            "You are a customer service response classifier. "
-            "Analyze replies and provide metadata about confidence and escalation needs. "
-            "Always respond with valid JSON matching the required schema."
+            model=self._classification_prompt["model_config"]["model"],
+            temperature=self._classification_prompt["model_config"]["temperature"]
         )
 
         self._classification_agent = create_agent(
             model=classification_llm,
             tools=[],  # Empty - no tools needed for classification
-            system_prompt=classification_system_prompt,
+            system_prompt=self._classification_prompt["system_prompt"],  # Use raw prompt template for classification
             response_format=ReplyClassification
         )
 
@@ -72,7 +64,7 @@ class ChatService:
         """
         # Compile prompt with variables
         context = 'Sources found from knowledge base' if has_sources else 'No sources available from knowledge base'
-        compiled_prompt = self._classification_prompt_obj.compile(
+        compiled_prompt = self._classification_prompt["user_prompt"].compile(
             reply=reply,
             context=context
         )
@@ -144,9 +136,9 @@ class ChatService:
         """Stream chat response via Server-Sent Events.
 
         Yields SSE-formatted strings:
-        - Token events: "data: {"type": "token", "content": "..."}\n\n"
-        - End event: "data: {"type": "end", "reply": "...", "confidence_score": 0.8, "escalate": false, "sources": [...]}\n\n"
-        - Error event: "data: {"type": "error", "message": "..."}\n\n"
+        - Token events: "data: {"type": "token", "content": "..."}\\n\\n"
+        - End event: "data: {"type": "end", "reply": "...", "confidence_score": 0.8, "escalate": false, "sources": [...]}\\n\\n"
+        - Error event: "data: {"type": "error", "message": "..."}\\n\\n"
         """
         try:
             # Prepare messages (same as chat method)
@@ -186,7 +178,6 @@ class ChatService:
 
             # Extract sources from the final result (need to get full result)
             # For now, we'll re-invoke to get the full result with tool outputs
-            # This is not ideal but works for the simple case
             result = self.agent.invoke({"messages": lc_messages}, config)
             sources = self._extract_sources(result)
 

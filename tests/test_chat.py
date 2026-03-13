@@ -2,7 +2,7 @@
 import pytest
 import json
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from app.services.llm.chat import ChatService
+from app.services.llm.chat import ChatService, ReplyClassification
 from app.services.llm.agent import Agent
 from app.services.llm.callbacks import CallbackHandler
 from app.services.rag.vector_store import VectorStore
@@ -10,17 +10,44 @@ from app.services.rag.retriever import RetrieverTool
 from langchain_core.messages import AIMessage, HumanMessage
 
 
+class MockPrompt:
+    """Mock prompt object with compile method"""
+    def __init__(self, prompt_text):
+        self.prompt = prompt_text
+
+    def compile(self, **kwargs):
+        return f"Compiled prompt with {kwargs}"
+
+
 @pytest.mark.asyncio
-async def test_chat_stream_yields_sse_events():
+@patch('app.services.llm.chat.get_classification_prompt')
+@patch('app.services.llm.chat.ChatOpenAI')
+@patch('app.services.llm.chat.create_agent')
+async def test_chat_stream_yields_sse_events(mock_create_agent, mock_chat_chat_openai, mock_get_classification_prompt):
     """ChatService.chat_stream() should yield SSE-formatted events"""
     # Arrange - minimal setup with mocks
     mock_agent = Mock()
     mock_handler = Mock()
     mock_handler.handler = Mock()
 
+    # Mock get
+    mock_get_classification_prompt.return_value = {
+        "system_prompt": "You are a classifier",
+        "user_prompt": MockPrompt("Reply: {{reply}}"),
+        "model_config": {"model": "gpt-4o", "temperature": 0}
+    }
+
+    # Mock classification agent
+    mock_classification_agent = MagicMock()
+    mock_classification_agent.invoke.return_value = {
+        "structured_response": ReplyClassification(confidence_score=0.9, escalate=False)
+    }
+    mock_create_agent.return_value = mock_classification_agent
+
     service = ChatService(agent=mock_agent, handler=mock_handler)
 
     # Track if astream was called
+
     astream_called = []
     full_reply_chunks = ["Hello", " there", "!"]
 
@@ -72,12 +99,29 @@ async def test_chat_stream_yields_sse_events():
 
 
 @pytest.mark.asyncio
-async def test_chat_websocket_yields_json_events():
+@patch('app.services.llm.chat.get_classification_prompt')
+@patch('app.services.llm.chat.ChatOpenAI')
+@patch('app.services.llm.chat.create_agent')
+async def test_chat_websocket_yields_json_events(mock_create_agent, mock_chat_openai, mock_get_classification_prompt):
     """ChatService.chat_websocket() should handle websocket communication"""
     # Arrange - minimal setup with mocks
     mock_agent = Mock()
     mock_handler = Mock()
     mock_handler.handler = Mock()
+
+    # Mock get_classification_prompt to return valid dict
+    mock_get_classification_prompt.return_value = {
+        "system_prompt": "You are a classifier",
+        "user_prompt": MockPrompt("Reply: {{reply}}"),
+        "model_config": {"model": "gpt-4o", "temperature": 0}
+    }
+
+    # Mock classification agent
+    mock_classification_agent = MagicMock()
+    mock_classification_agent.invoke.return_value = {
+        "structured_response": ReplyClassification(confidence_score=0.9, escalate=False)
+    }
+    mock_create_agent.return_value = mock_classification_agent
 
     service = ChatService(agent=mock_agent, handler=mock_handler)
 
@@ -131,12 +175,26 @@ async def test_chat_websocket_yields_json_events():
 
 
 @pytest.mark.asyncio
-async def test_chat_stream_handles_errors():
+@patch('app.services.llm.chat.get_classification_prompt')
+@patch('app.services.llm.chat.ChatOpenAI')
+@patch('app.services.llm.chat.create_agent')
+async def test_chat_stream_handles_errors(mock_create_agent, mock_chat_openai, mock_get_classification_prompt):
     """ChatService.chat_stream() should handle errors gracefully"""
     # Arrange - mock agent that raises error
     mock_agent = Mock()
     mock_handler = Mock()
     mock_handler.handler = Mock()
+
+    # Mock get_classification_prompt to return valid dict
+    mock_get_classification_prompt.return_value = {
+        "system_prompt": "You are a classifier",
+        "user_prompt": MockPrompt("Reply: {{reply}}"),
+        "model_config": {"model": "gpt-4o", "temperature": 0}
+    }
+
+    # Mock classification agent
+    mock_classification_agent = MagicMock()
+    mock_create_agent.return_value = mock_classification_agent
 
     service = ChatService(agent=mock_agent, handler=mock_handler)
 
