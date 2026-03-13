@@ -3,7 +3,7 @@ from typing import Any
 
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
-from app.prompts.langfuse import get_system_prompt, get_model_config
+from app.prompts.langfuse import get_agent_prompt
 from app.services.rag.retriever import RetrieverTool
 from app.services.rag.vector_store import VectorStore
 
@@ -13,20 +13,18 @@ class Agent:
 
     def __init__(self, vector_store: VectorStore, retriever_tool=None):
         self._vector_store = vector_store
-        self._system_prompt = get_system_prompt()
+        self._prompt = get_agent_prompt()
         self._retriever_tool = retriever_tool.tool
 
-        # Get model config from Langfuse
-        model_config = get_model_config()
         self._llm = ChatOpenAI(
-            model=model_config["model"],
-            temperature=model_config["temperature"]
+            model=self._prompt["model_config"]["model"],
+            temperature=self._prompt["model_config"]["temperature"]
         )
 
         self._agent = create_agent(
             model=self._llm,
             tools=[self._retriever_tool],
-            system_prompt=self._system_prompt  # Langfuse returns compiled string directly
+            system_prompt=self._prompt["system_prompt"]  # Langfuse returns compiled string directly
             # No response_format - natural text output only
         )
 

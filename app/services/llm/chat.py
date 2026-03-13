@@ -9,7 +9,7 @@ from fastapi import WebSocket
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
-from app.prompts.langfuse import get_system_prompt, get_model_config, get_classification_prompt_obj, get_classification_prompt
+from app.prompts.langfuse import get_classification_prompt
 from .agent import Agent
 from .callbacks import CallbackHandler
 
@@ -38,20 +38,17 @@ class ChatService:
         self.handler = handler
 
         # Classification Agent - create_agent with empty tools list
-        self._classification_prompt_obj = get_classification_prompt_obj()
-        data = get_classification_prompt()
-        model_config = data["model_config"]
-        system_prompt = data["system_prompt"]
+        self._classification_prompt = get_classification_prompt()
 
         classification_llm = ChatOpenAI(
-            model=model_config["model"],
-            temperature=model_config["temperature"]
+            model=self._classification_prompt["model_config"]["model"],
+            temperature=self._classification_prompt["model_config"]["temperature"]
         )
 
         self._classification_agent = create_agent(
             model=classification_llm,
             tools=[],  # Empty - no tools needed for classification
-            system_prompt=system_prompt,
+            system_prompt=self._classification_prompt["system_prompt"].prompt,  # Use raw prompt template for classification
             response_format=ReplyClassification
         )
 
@@ -67,7 +64,7 @@ class ChatService:
         """
         # Compile prompt with variables
         context = 'Sources found from knowledge base' if has_sources else 'No sources available from knowledge base'
-        compiled_prompt = self._classification_prompt_obj.compile(
+        compiled_prompt = self._classification_prompt["user_prompt"].compile(
             reply=reply,
             context=context
         )

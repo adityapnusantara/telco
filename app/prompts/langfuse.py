@@ -16,53 +16,25 @@ def get_langfuse_client():
         _langfuse_client = get_client()
     return _langfuse_client
 
-def get_system_prompt(prompt_name: str = "telco-customer-service-agent"):
-    """
-    Fetch the system prompt from Langfuse Prompt Management.
-
-    Args:
-        prompt_name: Name of the prompt in Langfuse
+def get_agent_prompt():
+    """Fetch system prompt and model config for agent from Langfuse in one call.
 
     Returns:
-        List of message dicts for LangChain
+        {
+            "system_prompt": List[dict],  # LangChain chat prompt format
+            "model_config": dict          # {"model": str, "temperature": float}
+        }
     """
     client = get_langfuse_client()
-    prompt = client.get_prompt(prompt_name, type="chat")
+    prompt = client.get_prompt(config.AGENT_PROMPT_NAME)
 
     # Get LangChain-compatible prompt without variable substitution
-    # (variables are hardcoded in Langfuse prompt)
-    return prompt.get_langchain_prompt()
+    system_prompt = prompt.get_langchain_prompt()
 
-def get_model_config(prompt_name: str = "telco-customer-service-agent"):
-    """
-    Fetch the model config from Langfuse Prompt Management.
-
-    Args:
-        prompt_name: Name of the prompt in Langfuse
-
-    Returns:
-        Dict with model configuration (model, temperature)
-    """
-    client = get_langfuse_client()
-    prompt = client.get_prompt(prompt_name, type="chat")
-
-    # Get config from Langfuse prompt
-    cfg = prompt.config
-
-    # Return model config with fallbacks
     return {
-        "model": cfg.get("model", config.DEFAULT_MODEL),
-        "temperature": cfg.get("temperature", config.DEFAULT_TEMPERATURE)
+        "system_prompt": system_prompt,
+        "model_config": prompt.config
     }
-
-def get_classification_prompt_obj():
-    """Get classification user message template from Langfuse for .compile()
-
-    Returns prompt object from config.CLASSIFICATION_USER_PROMPT_NAME
-    with template containing {{reply}} and {{context}} variables.
-    """
-    client = get_langfuse_client()
-    return client.get_prompt(config.CLASSIFICATION_USER_PROMPT_NAME)
 
 def get_classification_prompt() -> dict:
     """Fetch classification system prompt and model config in one API call.
@@ -70,17 +42,16 @@ def get_classification_prompt() -> dict:
     Returns:
         {
             "system_prompt": str,      # Raw prompt template string
+            "user_prompt": str,        # Raw user prompt template string
             "model_config": dict       # {"model": str, "temperature": float}
         }
     """
     client = get_langfuse_client()
-    prompt = client.get_prompt(config.CLASSIFICATION_SYSTEM_PROMPT_NAME)
+    system_prompt = client.get_prompt(config.CLASSIFICATION_SYSTEM_PROMPT_NAME)
+    user_prompt = client.get_prompt(config.CLASSIFICATION_USER_PROMPT_NAME)
 
-    cfg = prompt.config
     return {
-        "system_prompt": prompt.prompt,
-        "model_config": {
-            "model": cfg.get("model", config.DEFAULT_MODEL),
-            "temperature": cfg.get("temperature", config.DEFAULT_TEMPERATURE)
-        }
+        "system_prompt": system_prompt,
+        "user_prompt": user_prompt,
+        "model_config": system_prompt.config
     }
