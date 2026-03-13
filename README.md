@@ -176,6 +176,26 @@ The system prompt is structured to ensure reliable, hallucination-free responses
 
 6. **Tone Guidance** - Ensures consistent "Professional, helpful, concise" responses aligned with Telco brand standards.
 
+## Q1 "What to Explain" Mapping
+
+This section explicitly maps to Question 1 requirements in the assignment:
+
+1. **System prompt and rationale**  
+See [System Prompt Design](#system-prompt-design).  
+The prompt enforces role boundaries, retrieval-grounded answers, and escalation behavior.
+
+2. **Chunking strategy and reasoning**  
+See [Chunking Strategy](#chunking-strategy).  
+We use Q&A-pair chunks (instead of fixed-size character chunks) because the use case is question-driven and benefits from complete question-answer semantic units.
+
+3. **Embedding model choice and rationale**  
+See [Embedding Model Choice](#embedding-model-choice).  
+We selected `text-embedding-3-small` (1536 dims) as a pragmatic balance of quality, speed, and operational simplicity.
+
+4. **One limitation and production improvement**  
+See [Limitations & Production Improvements](#limitations--production-improvements).  
+Current limitation: basic retrieval without reranking. Planned improvement: hybrid retrieval + reranking.
+
 ## Chunking Strategy
 
 ### Approach: Q&A Pairs (not Character-Based Splitting)
