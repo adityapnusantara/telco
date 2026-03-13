@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "telco"
-version = "0.1.2"
+version = "0.1.3"
 description = "Telco Customer Service AI Agent"
 authors = ["AI Engineer"]
 readme = "README.md"
@@ -28,6 +28,7 @@ qdrant-client = "^1.17.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"
 httpx = "^0.27.0"
+pytest-asyncio = "^1.3.0"
 pytest-cov = "^7.0.0"
 
 [tool.pytest.ini_options]

@@ -1,0 +1,85 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.14, pytest-8.4.2, pluggy-1.6.0
+rootdir: /Users/aditya/Documents/projectAI/telco
+configfile: pyproject.toml
+plugins: anyio-4.12.1, langsmith-0.7.16, cov-7.0.0
+collected 47 items
+
+tests/test_agent.py ...                                                  [  6%]
+tests/test_agent_integration_structured.py .                             [  8%]
+tests/test_agent_structured_output.py ...                                [ 14%]
+tests/test_api_models.py ....                                            [ 23%]
+tests/test_api_structured_output.py ..                                   [ 27%]
+tests/test_callbacks.py .                                                [ 29%]
+tests/test_chat_endpoint.py ..                                           [ 34%]
+tests/test_chat_service.py .........                                     [ 53%]
+tests/test_chat_service_structured.py ...                                [ 59%]
+tests/test_config.py ...                                                 [ 65%]
+tests/test_ingestion.py .                                                [ 68%]
+tests/test_knowledge_base.py .                                           [ 70%]
+tests/test_langfuse.py ....                                              [ 78%]
+tests/test_main.py ....                                                  [ 87%]
+tests/test_qna_model.py ..                                               [ 91%]
+tests/test_retriever.py ...                                              [ 97%]
+tests/test_vector_store.py .                                             [100%]
+
+=============================== warnings summary ===============================
+app/main.py:31
+  /Users/aditya/Documents/projectAI/telco/app/main.py:31: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../../../anaconda3/envs/telco/lib/python3.11/site-packages/fastapi/applications.py:4599
+../../../anaconda3/envs/telco/lib/python3.11/site-packages/fastapi/applications.py:4599
+  /Users/aditya/anaconda3/envs/telco/lib/python3.11/site-packages/fastapi/applications.py:4599: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+app/main.py:67
+  /Users/aditya/Documents/projectAI/telco/app/main.py:67: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+______________ coverage: platform darwin, python 3.11.14-final-0 _______________
+
+Name                                 Stmts   Miss  Cover   Missing
+------------------------------------------------------------------
+app/__init__.py                          0      0   100%
+app/api/__init__.py                      0      0   100%
+app/api/models.py                       11      0   100%
+app/api/routes/__init__.py               0      0   100%
+app/api/routes/chat.py                  16      2    88%   32-33
+app/core/__init__.py                     0      0   100%
+app/core/config.py                      18      0   100%
+app/main.py                             41      3    93%   62-64
+app/prompts/__init__.py                  0      0   100%
+app/prompts/langfuse.py                 16      0   100%
+app/services/__init__.py                 0      0   100%
+app/services/llm/__init__.py             0      0   100%
+app/services/llm/agent.py               20      0   100%
+app/services/llm/callbacks.py            7      0   100%
+app/services/llm/chat.py                67     12    82%   35, 89-102
+app/services/rag/__init__.py             0      0   100%
+app/services/rag/ingestion.py           17      4    76%   31-35
+app/services/rag/knowledge_base.py      13      0   100%
+app/services/rag/models.py               6      0   100%
+app/services/rag/retriever.py           23      0   100%
+app/services/rag/vector_store.py        25      6    76%   34-43
+------------------------------------------------------------------
+TOTAL                                  280     27    90%
+Coverage XML written to file coverage.xml
+======================= 47 passed, 4 warnings in 13.92s ========================

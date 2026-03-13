@@ -58,13 +58,15 @@ poetry run pytest -x
 ```
 User Request → FastAPI /chat → ChatService (via Depends)
     ↓
-Agent class (invoke method)
+Agent class (invoke method) → Natural text reply
     ↓
 RetrieverTool → VectorStore → Qdrant (semantic search)
     ↓
 Langfuse CallbackHandler (tracing)
     ↓
-Structured response (reply, confidence_score, escalate)
+Classification Agent → Metadata (confidence_score, escalate)
+    ↓
+Structured response (reply, confidence_score, escalate, sources)
 ```
 
 ### Service Architecture
@@ -72,9 +74,12 @@ Structured response (reply, confidence_score, escalate)
 The application uses **class-based services with explicit dependency injection**:
 
 **LLM Services (`app/services/llm/`)**
-- `agent.py` - `Agent` class with `StructuredChatResponse` model for structured output
+- `agent.py` - `Agent` class for main RAG agent (natural text output)
 - `callbacks.py` - `CallbackHandler` class wrapping Langfuse tracing
-- `chat.py` - `ChatService` class for orchestration, extracts structured response from agent
+- `chat.py` - `ChatService` class for orchestration, includes:
+  - Main RAG agent for generating replies
+  - Classification agent for extracting metadata (confidence_score, escalate)
+  - `ReplyClassification` model for structured classification output
 
 **RAG Services (`app/services/rag/`)**
 - `vector_store.py` - `VectorStore` class wrapping Qdrant client and embeddings
@@ -85,8 +90,12 @@ The application uses **class-based services with explicit dependency injection**
 
 **Configuration & Integration**
 - `app/core/config.py` - Environment variables via dotenv, all service credentials
-- `app/prompts/langfuse.py` - Fetches system prompt from Langfuse Prompt Management
-- `app/api/models.py` - Pydantic request/response models for `/chat` endpoint, includes `StructuredChatResponse` for structured output
+- `app/prompts/langfuse.py` - Fetches prompts and configs from Langfuse Prompt Management:
+  - `get_system_prompt()` - Main RAG agent system prompt
+  - `get_model_config()` - Main agent model configuration
+  - `get_classification_prompt_obj()` - Classification agent prompt template (with variables)
+  - `get_classification_config()` - Classification agent model configuration
+- `app/api/models.py` - Pydantic request/response models for `/chat` endpoint
 
 ### Lifecycle Management
 
@@ -133,20 +142,33 @@ Each document has: `question`, `answer`, `source`, `category`
 
 ### Structured Output
 
-The agent uses LangChain's `response_format` parameter to return structured responses:
+The application uses structured output in two places:
 
-**StructuredChatResponse Model:**
-- `reply`: Natural language response
+**1. Classification Agent (ChatService)**
+- Uses `create_agent` with `response_format=ReplyClassification`
+- Returns `confidence_score` (0.0-1.0) and `escalate` (boolean)
+- Uses gpt-4o model from Langfuse config
+- Prompt template managed in Langfuse (`telco-customer-service-classification`)
+
+**ReplyClassification Model:**
 - `confidence_score`: Float (0.0-1.0) indicating answer confidence
 - `escalate`: Boolean flag for human escalation
 
-The LLM determines these values directly based on the system prompt instructions.
+**2. Main RAG Agent**
+- Outputs natural text (no structured format)
+- Reply text is then classified for metadata
 
 ### Escalation Logic
 
-The LLM now directly determines the `escalate` flag based on the system prompt instructions. The escalation criteria are:
+Escalation is determined by the classification agent analyzing the reply and context:
 
-- User question cannot be answered with available information
+- The classification agent uses a dedicated prompt template from Langfuse
+- The `ReplyClassification` model returns both `confidence_score` and `escalate`
+- Escalation criteria include:
+  - User asks for human agent
+  - Question cannot be answered with available information
+  - Request requires capabilities outside agent scope (account changes, refunds)
+  - Sensitive issues (legal, fraud, billing disputes)
 - Request requires capabilities outside agent scope (account changes, refunds)
 - User explicitly asks for a human agent
 - Sensitive issues (legal, fraud, billing disputes)
