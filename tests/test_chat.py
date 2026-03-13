@@ -31,9 +31,11 @@ async def test_chat_stream_yields_sse_events():
         # Actual format from LangChain astream with stream_mode="messages" is:
         # {'type': 'messages', 'ns': (), 'data': (AIMessageChunk, metadata)}
         for chunk_text in full_reply_chunks:
-            # Create mock message chunk with content attribute (not text)
-            message_chunk = Mock()
+            # Create mock message chunk that simulates AIMessage (no tool_call_id)
+            message_chunk = Mock(spec=['content'])  # Only allow 'content' attribute
             message_chunk.content = chunk_text
+            # Explicitly ensure tool_call_id doesn't exist (simulates AIMessage)
+            del message_chunk.tool_call_id
             yield {"type": "messages", "ns": (), "data": (message_chunk, {})}
 
     mock_agent.astream = mock_astream_generator
@@ -97,8 +99,11 @@ async def test_chat_websocket_yields_json_events():
     async def mock_astream_generator(*args, **kwargs):
         astream_called.append(True)
         for chunk_text in full_reply_chunks:
-            message_chunk = Mock()
+            # Create mock message chunk that simulates AIMessage (no tool_call_id)
+            message_chunk = Mock(spec=['content'])  # Only allow 'content' attribute
             message_chunk.content = chunk_text
+            # Explicitly ensure tool_call_id doesn't exist (simulates AIMessage)
+            del message_chunk.tool_call_id
             yield {"type": "messages", "ns": (), "data": (message_chunk, {})}
 
     mock_agent.astream = mock_astream_generator

@@ -1,6 +1,7 @@
 import pytest
+import asyncio
 from fastapi.testclient import TestClient
-from unittest.mock import Mock
+from unittest.mock import Mock, AsyncMock
 from app.services.llm.chat import ChatResponse
 
 
@@ -15,10 +16,15 @@ def test_chat_endpoint_with_depends():
     test_app.include_router(router)
 
     mock_service = Mock()
-    mock_service.chat.return_value = ChatResponse(
-        reply="Test response",
-        escalate=False
-    )
+
+    # Make chat return a coroutine since it's now async
+    async def mock_chat_response(*args, **kwargs):
+        return ChatResponse(
+            reply="Test response",
+            escalate=False
+        )
+
+    mock_service.chat = mock_chat_response
     test_app.state.chat_service = mock_service
 
     with TestClient(test_app) as client:
