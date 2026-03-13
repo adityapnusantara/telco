@@ -1,8 +1,11 @@
 # tests/test_agent.py
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+import asyncio
+from unittest.mock import Mock, patch, MagicMock, AsyncMock
 from app.services.llm.agent import Agent
 from app.services.rag.vector_store import VectorStore
+from app.services.rag.retriever import RetrieverTool
+from langchain_core.messages import HumanMessage
 
 
 def test_agent_init():
@@ -92,3 +95,52 @@ def test_agent_with_retriever_tool():
         call_kwargs = mock_create_agent.call_args.kwargs
         assert "tools" in call_kwargs
         assert call_kwargs["tools"] == [mock_retriever_tool.tool]
+
+
+@pytest.mark.asyncio
+async def test_agent_astream_yields_tokens():
+    """Agent.astream() should yield token chunks"""
+    # Arrange - minimal setup with mocks
+    mock_vector_store = Mock(spec=VectorStore)
+    mock_retriever_tool = Mock()
+    mock_retriever_tool.tool = Mock()
+
+    with patch('app.services.llm.agent.ChatOpenAI'), \
+         patch('app.services.llm.agent.get_system_prompt') as mock_prompt, \
+         patch('app.services.llm.agent.get_model_config') as mock_model_config, \
+         patch('app.services.llm.agent.create_agent') as mock_create_agent:
+        # get_system_prompt returns a compiled string
+        mock_prompt.return_value = "You are a helpful assistant"
+        # get_model_config returns model configuration
+        mock_model_config.return_value = {"model": "gpt-4o", "temperature": 0}
+
+        # Create mock agent instance with astream method
+        mock_agent_instance = MagicMock()
+        mock_create_agent.return_value = mock_agent_instance
+
+        # Track if astream was called
+        astream_called = []
+
+        # Setup async generator for astream
+        async def mock_astream_generator(*args, **kwargs):
+            # Track that astream was called with correct args
+            astream_called.append(True)
+            # Simulate yielding chunks
+            yield {"content": "Hello"}
+            yield {"content": " world"}
+
+        mock_agent_instance.astream = mock_astream_generator
+
+        agent = Agent(vector_store=mock_vector_store, retriever_tool=mock_retriever_tool)
+        messages = {"messages": [HumanMessage(content="Hello")]}
+
+        # Act - collect streamed tokens
+        tokens = []
+        async for chunk in agent.astream(messages, config={}):
+            tokens.append(chunk)
+
+        # Assert - should receive at least one token
+        assert len(tokens) > 0
+        # Verify the mock agent's astream was called
+        assert len(astream_called) > 0
+
