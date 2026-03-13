@@ -1,7 +1,9 @@
 # tests/test_chat.py
+import asyncio
 import pytest
 import json
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
+from fastapi import WebSocketDisconnect
 from app.services.llm.chat import ChatService, ReplyClassification
 from app.services.llm.agent import Agent
 from app.services.llm.callbacks import CallbackHandler
@@ -102,7 +104,8 @@ async def test_chat_stream_yields_sse_events(mock_create_agent, mock_chat_chat_o
 @patch('app.services.llm.chat.get_classification_prompt')
 @patch('app.services.llm.chat.ChatOpenAI')
 @patch('app.services.llm.chat.create_agent')
-async def test_chat_websocket_yields_json_events(mock_create_agent, mock_chat_openai, mock_get_classification_prompt):
+@patch('app.services.llm.chat.asyncio.wait_for', side_effect=asyncio.TimeoutError)
+async def test_chat_websocket_yields_json_events(mock_wait_for, mock_create_agent, mock_chat_openai, mock_get_classification_prompt):
     """ChatService.chat_websocket() should handle websocket communication"""
     # Arrange - minimal setup with mocks
     mock_agent = Mock()
@@ -127,12 +130,15 @@ async def test_chat_websocket_yields_json_events(mock_create_agent, mock_chat_op
 
     # Mock websocket
     websocket = MagicMock()
-    websocket.receive_json = AsyncMock(return_value={
-        "type": "message",
-        "message": "Hello",
-        "session_id": "test123",
-        "conversation_history": []
-    })
+    websocket.receive_json = AsyncMock(side_effect=[
+        {
+            "type": "message",
+            "message": "Hello",
+            "session_id": "test123",
+            "conversation_history": []
+        },
+        WebSocketDisconnect()
+    ])
     websocket.send_json = AsyncMock()
 
     # Track if astream was called
@@ -172,6 +178,68 @@ async def test_chat_websocket_yields_json_events(mock_create_agent, mock_chat_op
     last_call = websocket.send_json.call_args_list[-1][0][0]
     assert last_call["type"] == "end"
     assert "reply" in last_call
+
+
+@pytest.mark.asyncio
+@patch('app.services.llm.chat.get_classification_prompt')
+@patch('app.services.llm.chat.ChatOpenAI')
+@patch('app.services.llm.chat.create_agent')
+@patch('app.services.llm.chat.asyncio.wait_for', side_effect=asyncio.TimeoutError)
+async def test_chat_websocket_handles_multiple_messages_in_single_connection(
+    mock_wait_for, mock_create_agent, mock_chat_openai, mock_get_classification_prompt
+):
+    """ChatService.chat_websocket() should process multiple messages on one websocket."""
+    mock_agent = Mock()
+    mock_handler = Mock()
+    mock_handler.handler = Mock()
+
+    mock_get_classification_prompt.return_value = {
+        "system_prompt": "You are a classifier",
+        "user_prompt": MockPrompt("Reply: {{reply}}"),
+        "model_config": {"model": "gpt-4o", "temperature": 0}
+    }
+
+    mock_classification_agent = MagicMock()
+    mock_classification_agent.invoke.return_value = {
+        "structured_response": ReplyClassification(confidence_score=0.9, escalate=False)
+    }
+    mock_create_agent.return_value = mock_classification_agent
+
+    service = ChatService(agent=mock_agent, handler=mock_handler)
+
+    websocket = MagicMock()
+    websocket.receive_json = AsyncMock(side_effect=[
+        {
+            "type": "message",
+            "message": "Hello",
+            "session_id": "test123",
+            "conversation_history": []
+        },
+        {
+            "type": "message",
+            "message": "Need billing help",
+            "session_id": "test123",
+            "conversation_history": []
+        },
+        WebSocketDisconnect()
+    ])
+    websocket.send_json = AsyncMock()
+
+    async def mock_astream_generator(*args, **kwargs):
+        message_chunk = Mock(spec=['content'])
+        message_chunk.content = "Hi"
+        del message_chunk.tool_call_id
+        yield {"type": "messages", "ns": (), "data": (message_chunk, {})}
+
+    mock_agent.astream = mock_astream_generator
+    mock_agent.invoke.return_value = {"messages": [AIMessage(content="Hi")]}
+
+    await service.chat_websocket(websocket)
+
+    sent_events = [call[0][0] for call in websocket.send_json.call_args_list]
+    end_events = [event for event in sent_events if event.get("type") == "end"]
+    assert len(end_events) == 2
+    assert all("reply" in event for event in end_events)
 
 
 @pytest.mark.asyncio

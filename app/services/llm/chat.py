@@ -2,10 +2,11 @@ import asyncio
 import json
 import logging
 import re
+from collections import deque
 from collections.abc import AsyncIterator
 from pydantic import BaseModel, Field
 from typing import Optional
-from fastapi import WebSocket
+from fastapi import WebSocket, WebSocketDisconnect
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
@@ -229,80 +230,104 @@ class ChatService:
         - {"type": "end", "reply": "...", "confidence_score": 0.8, "escalate": false, "sources": [...]}
         - {"type": "error", "message": "..."}
         """
+        pending_messages = deque()
         try:
-            # Receive initial message
-            data = await websocket.receive_json()
-
-            if data.get("type") == "cancel":
-                await websocket.send_json({"type": "end", "reply": "", "cancelled": True})
-                return
-
-            if data.get("type") != "message":
-                await websocket.send_json({"type": "error", "message": "Expected message type"})
-                return
-
-            message = data.get("message", "")
-            conversation_history = data.get("conversation_history", [])
-            session_id = data.get("session_id") or session_id
-
-            # Prepare messages
-            messages = conversation_history.copy()
-            messages.append({"role": "user", "content": message})
-
-            lc_messages = []
-            for msg in messages:
-                if msg["role"] == "user":
-                    lc_messages.append(HumanMessage(content=msg["content"]))
+            while True:
+                # Read the next client event, preserving messages that arrived
+                # while previous replies were still streaming.
+                if pending_messages:
+                    data = pending_messages.popleft()
                 else:
-                    lc_messages.append(AIMessage(content=msg["content"]))
+                    data = await websocket.receive_json()
 
-            config = {
-                "callbacks": [self.handler.handler],
-                "metadata": {
-                    "langfuse_session_id": session_id or "default",
-                    "langfuse_tags": ["chat", "telco-agent", "websocket"]
+                if data.get("type") == "cancel":
+                    await websocket.send_json({"type": "end", "reply": "", "cancelled": True})
+                    continue
+
+                if data.get("type") != "message":
+                    await websocket.send_json({"type": "error", "message": "Expected message type"})
+                    continue
+
+                message = data.get("message", "")
+                conversation_history = data.get("conversation_history", [])
+                session_id = data.get("session_id") or session_id
+
+                # Prepare messages
+                messages = conversation_history.copy()
+                messages.append({"role": "user", "content": message})
+
+                lc_messages = []
+                for msg in messages:
+                    if msg["role"] == "user":
+                        lc_messages.append(HumanMessage(content=msg["content"]))
+                    else:
+                        lc_messages.append(AIMessage(content=msg["content"]))
+
+                config = {
+                    "callbacks": [self.handler.handler],
+                    "metadata": {
+                        "langfuse_session_id": session_id or "default",
+                        "langfuse_tags": ["chat", "telco-agent", "websocket"]
+                    }
                 }
-            }
 
-            full_reply = ""
+                full_reply = ""
+                cancelled = False
+                disconnected = False
 
-            # Stream tokens
-            async for chunk in self.agent.astream({"messages": lc_messages}, config):
-                # Check for cancel
-                try:
-                    cancel_msg = await asyncio.wait_for(websocket.receive_json(), timeout=0.01)
-                    if cancel_msg.get("type") == "cancel":
-                        await websocket.send_json({"type": "end", "reply": full_reply, "cancelled": True})
-                        return
-                except asyncio.TimeoutError:
-                    pass
+                # Stream tokens
+                async for chunk in self.agent.astream({"messages": lc_messages}, config):
+                    # Check for in-flight control messages (cancel / next message)
+                    try:
+                        control_msg = await asyncio.wait_for(websocket.receive_json(), timeout=0.01)
+                        control_type = control_msg.get("type")
+                        if control_type == "cancel":
+                            cancelled = True
+                            await websocket.send_json({"type": "end", "reply": full_reply, "cancelled": True})
+                            break
+                        if control_type == "message":
+                            pending_messages.append(control_msg)
+                        else:
+                            await websocket.send_json({"type": "error", "message": "Expected message type"})
+                    except asyncio.TimeoutError:
+                        pass
+                    except WebSocketDisconnect:
+                        disconnected = True
+                        break
 
-                data = chunk.get("data")
-                if data and len(data) >= 1:
-                    message_chunk = data[0]
-                    # Only stream AIMessage content, skip ToolMessage (tool results)
-                    if hasattr(message_chunk, "content") and message_chunk.content:
-                        # Check if this is an AIMessage (not ToolMessage)
-                        # ToolMessage has 'tool_call_id' attribute, AIMessage doesn't
-                        if not hasattr(message_chunk, 'tool_call_id'):
-                            full_reply += message_chunk.content
-                            await websocket.send_json({"type": "token", "content": message_chunk.content})
+                    chunk_data = chunk.get("data")
+                    if chunk_data and len(chunk_data) >= 1:
+                        message_chunk = chunk_data[0]
+                        # Only stream AIMessage content, skip ToolMessage (tool results)
+                        if hasattr(message_chunk, "content") and message_chunk.content:
+                            # ToolMessage has 'tool_call_id' attribute, AIMessage doesn't
+                            if not hasattr(message_chunk, 'tool_call_id'):
+                                full_reply += message_chunk.content
+                                await websocket.send_json({"type": "token", "content": message_chunk.content})
 
-            # Get final result for sources
-            result = self.agent.invoke({"messages": lc_messages}, config)
-            sources = self._extract_sources(result)
+                if disconnected:
+                    break
 
-            # Classify metadata using LLM (replaces keyword heuristics)
-            classification = await self._classify_reply(full_reply, has_sources=bool(sources))
+                if cancelled:
+                    continue
 
-            await websocket.send_json({
-                "type": "end",
-                "reply": full_reply,
-                "confidence_score": classification.confidence_score,
-                "escalate": classification.escalate,
-                "sources": sources
-            })
+                # Get final result for sources
+                result = self.agent.invoke({"messages": lc_messages}, config)
+                sources = self._extract_sources(result)
 
+                # Classify metadata using LLM (replaces keyword heuristics)
+                classification = await self._classify_reply(full_reply, has_sources=bool(sources))
+
+                await websocket.send_json({
+                    "type": "end",
+                    "reply": full_reply,
+                    "confidence_score": classification.confidence_score,
+                    "escalate": classification.escalate,
+                    "sources": sources
+                })
+
+        except WebSocketDisconnect:
+            return
         except Exception as e:
             # Log the actual error for debugging
             logger.error(f"Error in chat_websocket: {e}", exc_info=True)
