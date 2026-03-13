@@ -4,6 +4,7 @@ import re
 from collections.abc import AsyncIterator
 from pydantic import BaseModel
 from typing import Optional
+from fastapi import WebSocket
 from langchain_core.messages import HumanMessage, AIMessage
 from .agent import Agent
 from .callbacks import CallbackHandler
@@ -124,7 +125,7 @@ class ChatService:
         }
         yield f"data: {json.dumps(end_event)}\n\n"
 
-    async def chat_websocket(self, websocket, session_id: Optional[str] = None):
+    async def chat_websocket(self, websocket: WebSocket, session_id: Optional[str] = None) -> None:
         """Handle WebSocket chat communication.
 
         Receives messages via websocket.receive_json():
