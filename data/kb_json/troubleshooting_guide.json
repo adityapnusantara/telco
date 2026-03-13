@@ -1,0 +1,26 @@
+[
+  {
+    "question": "What should I do when internet is slow?",
+    "answer": "Restart the device, check signal strength, and toggle airplane mode.",
+    "source": "troubleshooting_guide.md",
+    "category": "troubleshooting_guide"
+  },
+  {
+    "question": "How can I troubleshoot call quality issues?",
+    "answer": "Check for network congestion via the MyTelco app.",
+    "source": "troubleshooting_guide.md",
+    "category": "troubleshooting_guide"
+  },
+  {
+    "question": "How do I report billing errors?",
+    "answer": "Submit a ticket via the app or call 123 (free from any network).",
+    "source": "troubleshooting_guide.md",
+    "category": "troubleshooting_guide"
+  },
+  {
+    "question": "Where can I replace my SIM card?",
+    "answer": "SIM card replacement is available at any authorized store with valid ID.",
+    "source": "troubleshooting_guide.md",
+    "category": "troubleshooting_guide"
+  }
+]

@@ -29,8 +29,12 @@ def test_health_endpoint(client):
 @patch("app.services.llm.agent.get_agent_prompt")
 @patch("app.services.llm.agent.create_agent")
 @patch("app.services.llm.callbacks.LangfuseCallbackHandler")
+@patch("app.services.llm.chat.ChatOpenAI")
+@patch("app.services.llm.chat.get_classification_prompt")
+@patch("app.services.llm.chat.create_agent")
 def test_startup_creates_services(
-    mock_langfuse_cb, mock_create_agent, mock_get_prompt,
+    mock_chat_create_agent, mock_get_classification_prompt,
+    mock_chat_chat_openai, mock_langfuse_cb, mock_create_agent, mock_get_prompt,
     mock_chat_openai, mock_qdrant_client, mock_embeddings, mock_qdrant_vs
 ):
     """Test that startup event creates all services in app.state"""

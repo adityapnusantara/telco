@@ -54,3 +54,24 @@ def get_classification_prompt() -> dict:
         "user_prompt": user_prompt,
         "model_config": system_prompt.config
     }
+
+
+def get_extraction_prompt() -> dict:
+    """Fetch extraction prompts and model config in one API call.
+
+    Returns:
+        {
+            "system_prompt": str,         # Raw prompt template string
+            "user_prompt": Prompt object, # For .compile() with variables
+            "model_config": dict          # {"model": str, "temperature": float}
+        }
+    """
+    client = get_langfuse_client()
+    system_prompt = client.get_prompt(config.EXTRACTION_SYSTEM_PROMPT_NAME)
+    user_prompt = client.get_prompt(config.EXTRACTION_USER_PROMPT_NAME)
+
+    return {
+        "system_prompt": system_prompt.prompt,
+        "user_prompt": user_prompt,
+        "model_config": system_prompt.config
+    }

@@ -75,6 +75,11 @@ datasets/
 *.jsonl
 *.db
 *.sqlite3
+!data/
+!data/kb_md/
+!data/kb_md/*.md
+!data/kb_json/
+!data/kb_json/*.json
 
 # --- Application Specific ---
 app/__pycache__/
@@ -87,6 +92,7 @@ app/**/*.pyc
 *.p12
 *.json
 secrets/
+!data/kb_json/*.json
 
 test.py
 notebook/
