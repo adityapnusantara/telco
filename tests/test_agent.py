@@ -1,7 +1,7 @@
 # tests/test_agent.py
 import pytest
 import asyncio
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
+from unittest.mock import Mock, patch, MagicMock
 from app.services.llm.agent import Agent
 from app.services.rag.vector_store import VectorStore
 from app.services.rag.retriever import RetrieverTool

@@ -1,7 +1,7 @@
 # tests/test_chat.py
 import pytest
 import json
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
+from unittest.mock import Mock, patch, MagicMock
 from app.services.llm.chat import ChatService
 from app.services.llm.agent import Agent
 from app.services.llm.callbacks import CallbackHandler
