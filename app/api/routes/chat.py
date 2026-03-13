@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import StreamingResponse
 from app.api.models import ChatRequest, ChatResponse
 from app.services.llm.chat import ChatService
 
@@ -31,3 +32,19 @@ async def create_chat(
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat/stream")
+async def stream_chat(
+    request: ChatRequest,
+    service: ChatService = Depends(get_chat_service)
+):
+    """Chat endpoint with SSE streaming for real-time token responses"""
+    return StreamingResponse(
+        service.chat_stream(
+            message=request.message,
+            conversation_history=request.conversation_history or [],
+            session_id=request.session_id
+        ),
+        media_type="text/event-stream"
+    )
