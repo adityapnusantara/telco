@@ -45,3 +45,56 @@ def test_chat_stream_endpoint_sse_format():
         # Should have token events and end event
         assert len(events) > 0
         assert events[-1]["type"] == "end"
+
+
+@pytest.mark.asyncio
+async def test_chat_websocket_endpoint():
+    """WS /chat/stream/ws should handle websocket communication"""
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from app.api.routes.chat import router
+
+    # Create a test app
+    test_app = FastAPI()
+    test_app.include_router(router)
+
+    # Create mock service with async websocket handler
+    async def mock_chat_websocket(websocket):
+        await websocket.send_json({"type": "token", "content": "Hello"})
+        await websocket.send_json({"type": "token", "content": " world"})
+        await websocket.send_json({
+            "type": "end",
+            "reply": "Hello world",
+            "confidence_score": 0.8,
+            "escalate": False,
+            "sources": None
+        })
+
+    mock_service = Mock()
+    mock_service.chat_websocket = mock_chat_websocket
+    test_app.state.chat_service = mock_service
+
+    with TestClient(test_app) as client:
+        with client.websocket_connect("/chat/stream/ws") as websocket:
+            # Send message
+            websocket.send_json({
+                "type": "message",
+                "message": "Hello",
+                "session_id": "test123",
+                "conversation_history": []
+            })
+
+            # Receive events
+            events = []
+            while True:
+                try:
+                    event = websocket.receive_json()
+                    events.append(event)
+                    if event.get("type") == "end":
+                        break
+                except:
+                    break
+
+            # Should have received events
+            assert len(events) > 0
+            assert events[-1]["type"] == "end"

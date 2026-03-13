@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, WebSocket
 from fastapi.responses import StreamingResponse
 from app.api.models import ChatRequest, ChatResponse
 from app.services.llm.chat import ChatService
@@ -48,3 +48,17 @@ async def stream_chat(
         ),
         media_type="text/event-stream"
     )
+
+
+@router.websocket("/chat/stream/ws")
+async def stream_chat_websocket(websocket: WebSocket):
+    """WebSocket endpoint for bidirectional chat streaming"""
+    await websocket.accept()
+
+    # Get service from app.state (websocket.app gives access to the FastAPI app)
+    service = websocket.app.state.chat_service
+    if service is None:
+        await websocket.close(code=1011, reason="Services not initialized")
+        return
+
+    await service.chat_websocket(websocket)
