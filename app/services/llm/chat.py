@@ -3,14 +3,23 @@ import json
 import logging
 import re
 from collections.abc import AsyncIterator
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from fastapi import WebSocket
 from langchain_core.messages import HumanMessage, AIMessage
+from langchain_openai import ChatOpenAI
+from langchain.agents import create_agent
+from app.prompts.langfuse import get_system_prompt, get_model_config, get_classification_prompt_obj, get_classification_config
 from .agent import Agent
 from .callbacks import CallbackHandler
 
 logger = logging.getLogger(__name__)
+
+
+class ReplyClassification(BaseModel):
+    """Classification result for reply metadata"""
+    confidence_score: float = Field(description="Confidence 0.0-1.0", ge=0.0, le=1.0)
+    escalate: bool = Field(description="True if should escalate to human")
 
 
 class ChatResponse(BaseModel):
@@ -28,7 +37,61 @@ class ChatService:
         self.agent = agent
         self.handler = handler
 
-    def chat(self, message: str, conversation_history: list[dict], session_id: Optional[str] = None) -> ChatResponse:
+        # Classification Agent - create_agent with empty tools list
+        self._classification_prompt_obj = get_classification_prompt_obj()
+        model_config = get_classification_config()
+
+        classification_llm = ChatOpenAI(
+            model=model_config["model"],
+            temperature=model_config["temperature"]
+        )
+
+        # Compile the prompt template to get a string
+        system_prompt_str = self._classification_prompt_obj.compile()
+
+        self._classification_agent = create_agent(
+            model=classification_llm,
+            tools=[],  # Empty - no tools needed for classification
+            system_prompt=system_prompt_str,
+            response_format=ReplyClassification
+        )
+
+    async def _classify_reply(self, reply: str, has_sources: bool) -> ReplyClassification:
+        """Classify reply to extract confidence_score and escalate using LLM.
+
+        Args:
+            reply: The agent's natural language response
+            has_sources: Whether sources were found in the knowledge base
+
+        Returns:
+            ReplyClassification with confidence_score and escalate
+        """
+        prompt = f"""Analyze the following customer service reply and provide metadata.
+
+Reply: "{reply[:1000]}"
+
+Context: {'Sources found from knowledge base' if has_sources else 'No sources available from knowledge base'}
+
+Provide JSON with:
+1. confidence_score (0.0-1.0): How confident is this answer? High confidence if sources found, answer is specific and complete. Low confidence if no sources, answer is vague, or user needs to be escalated.
+2. escalate (true/false): Should this escalate to human? True if: user asks for human, question cannot be answered, requires account changes, sensitive issue (legal, fraud, billing dispute).
+
+Return only JSON, no other text: {{"confidence_score": 0.8, "escalate": false}}"""
+
+        try:
+            result = await self._classification_llm.ainvoke(prompt)
+            # Parse JSON result
+            parsed = json.loads(result.content)
+            return ReplyClassification(**parsed)
+        except Exception as e:
+            logger.error(f"Error in _classify_reply: {e}", exc_info=True)
+            # Fallback to heuristic classification
+            escalate_keywords = ["human agent", "speak to human", "representative", "escalate", "can't help", "unable to help"]
+            escalate = any(keyword.lower() in reply.lower() for keyword in escalate_keywords)
+            confidence_score = 0.8 if has_sources and not escalate else 0.5
+            return ReplyClassification(confidence_score=confidence_score, escalate=escalate)
+
+    async def chat(self, message: str, conversation_history: list[dict], session_id: Optional[str] = None) -> ChatResponse:
         """Process a chat message using the RAG agent"""
         messages = conversation_history.copy()
         messages.append({"role": "user", "content": message})
@@ -51,19 +114,30 @@ class ChatService:
 
         result = self.agent.invoke({"messages": lc_messages}, config=config)
 
-        # Extract structured response
-        structured = result.get("structured_response")
-        if structured is None:
-            # Fallback handling if structured_response is missing
-            return self._fallback_response(result)
+        # Extract reply from last message (natural text, not JSON)
+        messages_list = result.get("messages", [])
 
-        # Extract sources from tool calls
+        # Handle empty messages list
+        if not messages_list:
+            return ChatResponse(
+                reply="I apologize, but I couldn't generate a response. Please try again.",
+                escalate=True,
+                confidence_score=0.0,
+                sources=None
+            )
+        last_message = messages_list[-1]
+        reply = last_message.content if hasattr(last_message, 'content') else str(last_message)
+
+        # Extract sources from tool results
         sources = self._extract_sources(result)
 
+        # Classify metadata using LLM
+        classification = await self._classify_reply(reply, has_sources=bool(sources))
+
         return ChatResponse(
-            reply=structured.reply,
-            escalate=structured.escalate,
-            confidence_score=structured.confidence_score,
+            reply=reply,
+            escalate=classification.escalate,
+            confidence_score=classification.confidence_score,
             sources=sources
         )
 
@@ -113,19 +187,15 @@ class ChatService:
             result = self.agent.invoke({"messages": lc_messages}, config)
             sources = self._extract_sources(result)
 
-            # Determine escalate based on keywords in reply
-            escalate_keywords = ["human agent", "speak to human", "representative", "escalate"]
-            escalate = any(keyword.lower() in full_reply.lower() for keyword in escalate_keywords)
+            # Classify metadata using LLM (replaces keyword heuristics)
+            classification = await self._classify_reply(full_reply, has_sources=bool(sources))
 
-            # Heuristic confidence score
-            confidence_score = 0.8 if sources else 0.5
-
-            # Send final end event
+            # Send final end event with CLASSIFIED metadata
             end_event = {
                 "type": "end",
                 "reply": full_reply,
-                "confidence_score": confidence_score,
-                "escalate": escalate,
+                "confidence_score": classification.confidence_score,
+                "escalate": classification.escalate,
                 "sources": sources
             }
             yield f"data: {json.dumps(end_event)}\n\n"
@@ -211,16 +281,14 @@ class ChatService:
             result = self.agent.invoke({"messages": lc_messages}, config)
             sources = self._extract_sources(result)
 
-            # Determine escalate
-            escalate_keywords = ["human agent", "speak to human", "representative", "escalate"]
-            escalate = any(keyword.lower() in full_reply.lower() for keyword in escalate_keywords)
-            confidence_score = 0.8 if sources else 0.5
+            # Classify metadata using LLM (replaces keyword heuristics)
+            classification = await self._classify_reply(full_reply, has_sources=bool(sources))
 
             await websocket.send_json({
                 "type": "end",
                 "reply": full_reply,
-                "confidence_score": confidence_score,
-                "escalate": escalate,
+                "confidence_score": classification.confidence_score,
+                "escalate": classification.escalate,
                 "sources": sources
             })
 
@@ -275,26 +343,3 @@ class ChatService:
                                         sources.append(source)
 
         return sources if sources else None
-
-    def _fallback_response(self, result: dict) -> ChatResponse:
-        """Fallback response if structured_response is missing"""
-        messages_list = result.get("messages", [])
-
-        # Handle empty messages list
-        if not messages_list:
-            return ChatResponse(
-                reply="I apologize, but I couldn't generate a response. Please try again.",
-                escalate=True,  # Escalate when we can't generate a response
-                confidence_score=None,
-                sources=None
-            )
-
-        last_message = messages_list[-1]
-        reply = last_message.content if hasattr(last_message, 'content') else str(last_message)
-
-        return ChatResponse(
-            reply=reply,
-            escalate=False,  # Default on fallback
-            confidence_score=None,
-            sources=self._extract_sources(result)
-        )
