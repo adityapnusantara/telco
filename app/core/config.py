@@ -12,6 +12,11 @@ class Config:
     LANGFUSE_SECRET_KEY: str = os.getenv("LANGFUSE_SECRET_KEY", "")
     LANGFUSE_BASE_URL: str = os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com")
 
+    # Langfuse Prompt Names
+    SYSTEM_PROMPT_NAME: str = os.getenv("SYSTEM_PROMPT_NAME", "telco-customer-service-agent")
+    CLASSIFICATION_SYSTEM_PROMPT_NAME: str = os.getenv("CLASSIFICATION_SYSTEM_PROMPT_NAME", "telco-customer-service-classification-user")
+    CLASSIFICATION_USER_PROMPT_NAME: str = os.getenv("CLASSIFICATION_USER_PROMPT_NAME", "telco-customer-service-classification-system")
+
     # Qdrant
     QDRANT_URL: str = os.getenv("QDRANT_URL", "")
     QDRANT_API_KEY: str = os.getenv("QDRANT_API_KEY", "")

@@ -56,18 +56,31 @@ def get_model_config(prompt_name: str = "telco-customer-service-agent"):
     }
 
 def get_classification_prompt_obj():
-    """Get classification prompt object from Langfuse for .compile()
+    """Get classification user message template from Langfuse for .compile()
 
-    Returns prompt object with template containing {{reply}} and {{context}} variables.
+    Returns prompt object from config.CLASSIFICATION_USER_PROMPT_NAME
+    with template containing {{reply}} and {{context}} variables.
     """
     client = get_langfuse_client()
-    return client.get_prompt("telco-customer-service-classification")
+    return client.get_prompt(config.CLASSIFICATION_USER_PROMPT_NAME)
 
-def get_classification_config() -> dict:
-    """Get classification model config from Langfuse.
+def get_classification_prompt() -> dict:
+    """Fetch classification system prompt and model config in one API call.
 
-    Returns: {"model": "gpt-4o", "temperature": 0}
+    Returns:
+        {
+            "system_prompt": str,      # Raw prompt template string
+            "model_config": dict       # {"model": str, "temperature": float}
+        }
     """
     client = get_langfuse_client()
-    config_prompt = client.get_prompt("telco-customer-service-classification")
-    return config_prompt.config
+    prompt = client.get_prompt(config.CLASSIFICATION_SYSTEM_PROMPT_NAME)
+
+    cfg = prompt.config
+    return {
+        "system_prompt": prompt.prompt,
+        "model_config": {
+            "model": cfg.get("model", config.DEFAULT_MODEL),
+            "temperature": cfg.get("temperature", config.DEFAULT_TEMPERATURE)
+        }
+    }

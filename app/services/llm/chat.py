@@ -9,7 +9,7 @@ from fastapi import WebSocket
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
-from app.prompts.langfuse import get_system_prompt, get_model_config, get_classification_prompt_obj, get_classification_config
+from app.prompts.langfuse import get_system_prompt, get_model_config, get_classification_prompt_obj, get_classification_prompt
 from .agent import Agent
 from .callbacks import CallbackHandler
 
@@ -39,24 +39,19 @@ class ChatService:
 
         # Classification Agent - create_agent with empty tools list
         self._classification_prompt_obj = get_classification_prompt_obj()
-        model_config = get_classification_config()
+        data = get_classification_prompt()
+        model_config = data["model_config"]
+        system_prompt = data["system_prompt"]
 
         classification_llm = ChatOpenAI(
             model=model_config["model"],
             temperature=model_config["temperature"]
         )
 
-        # System prompt for classification agent (static, no variables)
-        classification_system_prompt = (
-            "You are a customer service response classifier. "
-            "Analyze replies and provide metadata about confidence and escalation needs. "
-            "Always respond with valid JSON matching the required schema."
-        )
-
         self._classification_agent = create_agent(
             model=classification_llm,
             tools=[],  # Empty - no tools needed for classification
-            system_prompt=classification_system_prompt,
+            system_prompt=system_prompt,
             response_format=ReplyClassification
         )
 
