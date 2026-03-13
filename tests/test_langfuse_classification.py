@@ -39,5 +39,5 @@ def test_get_classification_config():
 
         result = get_classification_config()
 
-        mock_client.get_prompt.assert_called_once_with("telco-customer-service-classification-system")
+        mock_client.get_prompt.assert_called_once_with("telco-customer-service-classification-user")
         assert result == {"model": "gpt-4o", "temperature": 0}

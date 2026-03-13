@@ -56,9 +56,10 @@ def get_model_config(prompt_name: str = "telco-customer-service-agent"):
     }
 
 def get_classification_prompt_obj():
-    """Get classification prompt object from Langfuse for .compile()
+    """Get classification user message template from Langfuse for .compile()
 
-    Returns prompt object with template containing {{reply}} and {{context}} variables.
+    Returns prompt object from telco-customer-service-classification-system
+    with template containing {{reply}} and {{context}} variables.
     """
     client = get_langfuse_client()
     return client.get_prompt("telco-customer-service-classification-system")
@@ -66,10 +67,10 @@ def get_classification_prompt_obj():
 def get_classification_config() -> dict:
     """Get classification model config from Langfuse.
 
-    Returns: {"model": "gpt-4o", "temperature": 0}
+    Returns config from telco-customer-service-classification-user prompt.
     """
     client = get_langfuse_client()
-    config_prompt = client.get_prompt("telco-customer-service-classification-system")
+    config_prompt = client.get_prompt("telco-customer-service-classification-user")
     return config_prompt.config
 
 
