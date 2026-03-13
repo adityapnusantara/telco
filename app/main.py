@@ -11,6 +11,22 @@ from app.services.llm.chat import ChatService
 
 logger = logging.getLogger(__name__)
 
+
+# Suppress OpenTelemetry context warning (FastAPI async issue)
+class OpenTelemetryContextFilter(logging.Filter):
+    def filter(self, record):
+        # Suppress the "Failed to detach context" warning
+        if "Failed to detach context" in record.getMessage():
+            return False
+        # Suppress the related traceback
+        if "ValueError: <Token" in record.getMessage() and "was created in a different Context" in record.getMessage():
+            return False
+        return True
+
+# Apply filter to OpenTelemetry loggers
+otel_logger = logging.getLogger("opentelemetry.context")
+otel_logger.addFilter(OpenTelemetryContextFilter())
+
 app = FastAPI(
     title="Telco Customer Service AI Agent",
     description="AI-powered customer service agent for Telco",
