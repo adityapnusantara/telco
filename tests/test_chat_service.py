@@ -14,6 +14,7 @@ def test_chat_service_init():
 
     with patch('app.services.llm.chat.get_classification_prompt_obj') as mock_get_prompt, \
          patch('app.services.llm.chat.get_classification_config') as mock_get_config, \
+         patch('app.services.llm.chat.get_classification_system_prompt') as mock_get_system_prompt, \
          patch('app.services.llm.chat.ChatOpenAI') as mock_chat_openai, \
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
@@ -21,6 +22,7 @@ def test_chat_service_init():
         mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        mock_get_system_prompt.return_value = "You are a customer service response classifier."
         mock_llm = MagicMock()
         mock_chat_openai.return_value = mock_llm
         mock_agent_instance = MagicMock()
@@ -32,6 +34,9 @@ def test_chat_service_init():
         assert service.handler == mock_handler
         assert service._classification_agent == mock_agent_instance
         assert service._classification_prompt_obj == mock_prompt_obj
+
+        # Verify get_classification_system_prompt was called
+        mock_get_system_prompt.assert_called_once()
 
         # Verify compile() was NOT called in __init__ (only called in _classify_reply)
         mock_prompt_obj.compile.assert_not_called()
@@ -59,6 +64,7 @@ async def test_chat_service_chat_with_natural_text_response():
 
     with patch('app.services.llm.chat.get_classification_prompt_obj') as mock_get_prompt, \
          patch('app.services.llm.chat.get_classification_config') as mock_get_config, \
+         patch('app.services.llm.chat.get_classification_system_prompt') as mock_get_system_prompt, \
          patch('app.services.llm.chat.ChatOpenAI') as mock_chat_openai, \
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
@@ -66,6 +72,7 @@ async def test_chat_service_chat_with_natural_text_response():
         mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        mock_get_system_prompt.return_value = "You are a customer service response classifier."
         mock_llm = MagicMock()
         mock_chat_openai.return_value = mock_llm
         mock_agent_instance = MagicMock()
@@ -101,6 +108,7 @@ async def test_chat_service_chat_with_escalation():
 
     with patch('app.services.llm.chat.get_classification_prompt_obj') as mock_get_prompt, \
          patch('app.services.llm.chat.get_classification_config') as mock_get_config, \
+         patch('app.services.llm.chat.get_classification_system_prompt') as mock_get_system_prompt, \
          patch('app.services.llm.chat.ChatOpenAI') as mock_chat_openai, \
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
@@ -108,6 +116,7 @@ async def test_chat_service_chat_with_escalation():
         mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        mock_get_system_prompt.return_value = "You are a customer service response classifier."
         mock_llm = MagicMock()
         mock_chat_openai.return_value = mock_llm
         mock_agent_instance = MagicMock()
@@ -142,6 +151,7 @@ async def test_chat_service_chat_handles_empty_messages():
 
     with patch('app.services.llm.chat.get_classification_prompt_obj') as mock_get_prompt, \
          patch('app.services.llm.chat.get_classification_config') as mock_get_config, \
+         patch('app.services.llm.chat.get_classification_system_prompt') as mock_get_system_prompt, \
          patch('app.services.llm.chat.ChatOpenAI') as mock_chat_openai, \
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
@@ -149,6 +159,7 @@ async def test_chat_service_chat_handles_empty_messages():
         mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        mock_get_system_prompt.return_value = "You are a customer service response classifier."
         mock_llm = MagicMock()
         mock_chat_openai.return_value = mock_llm
         mock_agent_instance = MagicMock()
@@ -173,6 +184,7 @@ def test_extract_sources_returns_none_when_empty():
 
     with patch('app.services.llm.chat.get_classification_prompt_obj') as mock_get_prompt, \
          patch('app.services.llm.chat.get_classification_config') as mock_get_config, \
+         patch('app.services.llm.chat.get_classification_system_prompt') as mock_get_system_prompt, \
          patch('app.services.llm.chat.ChatOpenAI') as mock_chat_openai, \
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
@@ -180,6 +192,7 @@ def test_extract_sources_returns_none_when_empty():
         mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        mock_get_system_prompt.return_value = "You are a customer service response classifier."
         mock_llm = MagicMock()
         mock_chat_openai.return_value = mock_llm
         mock_agent_instance = MagicMock()
@@ -202,6 +215,7 @@ def test_extract_sources_extracts_from_tool_message():
 
     with patch('app.services.llm.chat.get_classification_prompt_obj') as mock_get_prompt, \
          patch('app.services.llm.chat.get_classification_config') as mock_get_config, \
+         patch('app.services.llm.chat.get_classification_system_prompt') as mock_get_system_prompt, \
          patch('app.services.llm.chat.ChatOpenAI') as mock_chat_openai, \
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
@@ -209,6 +223,7 @@ def test_extract_sources_extracts_from_tool_message():
         mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        mock_get_system_prompt.return_value = "You are a customer service response classifier."
         mock_llm = MagicMock()
         mock_chat_openai.return_value = mock_llm
         mock_agent_instance = MagicMock()
@@ -239,6 +254,7 @@ def test_extract_sources_handles_multiple_sources():
 
     with patch('app.services.llm.chat.get_classification_prompt_obj') as mock_get_prompt, \
          patch('app.services.llm.chat.get_classification_config') as mock_get_config, \
+         patch('app.services.llm.chat.get_classification_system_prompt') as mock_get_system_prompt, \
          patch('app.services.llm.chat.ChatOpenAI') as mock_chat_openai, \
          patch('app.services.llm.chat.create_agent') as mock_create_agent:
 
@@ -246,6 +262,7 @@ def test_extract_sources_handles_multiple_sources():
         mock_prompt_obj.compile.return_value = "Compiled classification user prompt"
         mock_get_prompt.return_value = mock_prompt_obj
         mock_get_config.return_value = {"model": "gpt-4o", "temperature": 0}
+        mock_get_system_prompt.return_value = "You are a customer service response classifier."
         mock_llm = MagicMock()
         mock_chat_openai.return_value = mock_llm
         mock_agent_instance = MagicMock()
