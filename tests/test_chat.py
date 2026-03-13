@@ -123,3 +123,35 @@ async def test_chat_websocket_yields_json_events():
     last_call = websocket.send_json.call_args_list[-1][0][0]
     assert last_call["type"] == "end"
     assert "reply" in last_call
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_handles_errors():
+    """ChatService.chat_stream() should handle errors gracefully"""
+    # Arrange - mock agent that raises error
+    mock_agent = Mock()
+    mock_handler = Mock()
+    mock_handler.handler = Mock()
+
+    service = ChatService(agent=mock_agent, handler=mock_handler)
+
+    # Mock astream to raise error (must be async generator)
+    async def mock_astream_error(*args, **kwargs):
+        raise Exception("LLM error")
+        yield  # Make it an async generator
+
+    mock_agent.astream = mock_astream_error
+
+    # Act
+    events = []
+    async for event_str in service.chat_stream("Hello", [], "test"):
+        event_data = json.loads(event_str[6:])
+        events.append(event_data)
+        # Should receive error event and stop
+        if event_data.get("type") == "error":
+            break
+
+    # Assert - should have error event
+    assert len(events) > 0
+    assert events[0]["type"] == "error"
+    assert "LLM error" in events[0]["message"]
