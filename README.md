@@ -80,34 +80,9 @@ Create these prompts in Langfuse:
 - `telco-kb-extraction-system` (extraction system prompt + model config)
 - `telco-kb-extraction-user` (extraction user prompt template)
 
-Example for `telco-customer-service-agent`:
-
-```yaml
-type: chat
-prompt:
-  - role: system
-    content: |
-      You are a customer service agent for MyTelco, a telecommunications provider.
-
-      Your capabilities:
-      - Answer questions about billing, service plans, and troubleshooting
-      - Use ONLY information from the retrieved knowledge base
-      - If the information is not in the knowledge base, acknowledge it honestly
-
-      Escalation contact: call 123 or use the MyTelco app
-
-      Tone: Professional, helpful, concise
-
-labels:
-  - production
-```
-
 ### Run the Application
 
 ```bash
-# Development server
-poetry run python run.py
-
 # Or using uvicorn directly
 poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
