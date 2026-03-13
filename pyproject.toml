@@ -24,11 +24,11 @@ langfuse = "^4.0.0"
 
 # Qdrant Client
 qdrant-client = "^1.17.0"
-pytest-asyncio = "^1.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"
 httpx = "^0.27.0"
+pytest-asyncio = "^1.3.0"
 pytest-cov = "^7.0.0"
 
 [tool.pytest.ini_options]
