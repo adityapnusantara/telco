@@ -169,6 +169,58 @@ curl -X POST "http://localhost:8000/chat" \
 - `escalate`: Boolean flag from the classification agent
 - `sources`: List of knowledge base files used for the answer
 
+### Streaming Endpoint (SSE)
+
+Use SSE if you want token-by-token output over HTTP:
+
+```bash
+curl -N -X POST "http://localhost:8000/chat/stream" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What are your service plans?",
+    "session_id": "user-123-session-456",
+    "conversation_history": []
+  }'
+```
+
+Example SSE events:
+
+```text
+data: {"type":"token","content":"We"}
+
+data: {"type":"token","content":" offer"}
+
+data: {"type":"end","reply":"We offer...","confidence_score":0.9,"escalate":false,"sources":["service_plans.json"]}
+```
+
+### WebSocket Endpoint
+
+Use WebSocket for bidirectional streaming (send message/cancel while connected):
+
+```bash
+wscat -c ws://localhost:8000/chat/stream/ws
+```
+
+Send a message:
+
+```json
+{"type":"message","message":"Halo","session_id":"test123","conversation_history":[]}
+```
+
+Optional cancel event:
+
+```json
+{"type":"cancel"}
+```
+
+Example events from server:
+
+```json
+{"type":"token","content":"Hello"}
+{"type":"token","content":"!"}
+{"type":"end","reply":"Hello! How can I assist you today with your MyTelco services?","confidence_score":0.9,"escalate":false,"sources":null}
+```
+
 ## Q1 "What to Explain" Mapping
 
 This section explicitly maps to Question 1 requirements in the assignment:
