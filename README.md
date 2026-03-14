@@ -29,15 +29,19 @@ poetry install
 
 # Copy environment template
 cp .env.example .env
-
-# Edit .env with your credentials
-# Optional: set prompt names if different from defaults
-# AGENT_PROMPT_NAME=telco-customer-service-agent
-# CLASSIFICATION_SYSTEM_PROMPT_NAME=telco-customer-service-classification-user
-# CLASSIFICATION_USER_PROMPT_NAME=telco-customer-service-classification-system
-# EXTRACTION_SYSTEM_PROMPT_NAME=telco-kb-extraction-system
-# EXTRACTION_USER_PROMPT_NAME=telco-kb-extraction-user
 ```
+
+After creating `.env`, fill in the required credentials:
+
+- `OPENAI_API_KEY`
+- `LANGFUSE_PUBLIC_KEY`
+- `LANGFUSE_SECRET_KEY`
+- `QDRANT_URL`
+- `QDRANT_API_KEY`
+
+Optional but commonly set:
+- `LANGFUSE_BASE_URL` (default: `https://cloud.langfuse.com`)
+- `QDRANT_COLLECTION_NAME` (default: `telco_knowledge_base`)
 
 ### Knowledge Base Setup
 
@@ -45,6 +49,38 @@ cp .env.example .env
 # Ingest Q&A documents into Qdrant
 poetry run python scripts/ingest_kb.py
 ```
+
+### Ingestion Flow
+
+```text
+scripts/ingest_kb.py
+        |
+        v
+Load markdown sources (data/kb_md/*.md)
+        |
+        v
+Clear existing JSON artifacts (data/kb_json/*.json)
+        |
+        v
+Extract Q&A per markdown source (extraction agent)
+        |
+        v
+Write per-source JSON files (data/kb_json/*.json)
+        |
+        v
+Load generated Q&A JSON documents
+        |
+        v
+Convert each Q&A into LangChain Document
+        |
+        v
+Add documents to Qdrant collection
+        |
+        v
+Print summary counts (generated files + ingested docs)
+```
+
+This flow is executed by `run_full_ingestion()` and performs extraction plus vector ingestion in one command.
 
 ### Sample Knowledge Base
 
