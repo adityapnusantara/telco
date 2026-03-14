@@ -29,15 +29,19 @@ poetry install
 
 # Copy environment template
 cp .env.example .env
-
-# Edit .env with your credentials
-# Optional: set prompt names if different from defaults
-# AGENT_PROMPT_NAME=telco-customer-service-agent
-# CLASSIFICATION_SYSTEM_PROMPT_NAME=telco-customer-service-classification-user
-# CLASSIFICATION_USER_PROMPT_NAME=telco-customer-service-classification-system
-# EXTRACTION_SYSTEM_PROMPT_NAME=telco-kb-extraction-system
-# EXTRACTION_USER_PROMPT_NAME=telco-kb-extraction-user
 ```
+
+After creating `.env`, fill in the required credentials:
+
+- `OPENAI_API_KEY`
+- `LANGFUSE_PUBLIC_KEY`
+- `LANGFUSE_SECRET_KEY`
+- `QDRANT_URL`
+- `QDRANT_API_KEY`
+
+Optional but commonly set:
+- `LANGFUSE_BASE_URL` (default: `https://cloud.langfuse.com`)
+- `QDRANT_COLLECTION_NAME` (default: `telco_knowledge_base`)
 
 ### Knowledge Base Setup
 
@@ -45,6 +49,38 @@ cp .env.example .env
 # Ingest Q&A documents into Qdrant
 poetry run python scripts/ingest_kb.py
 ```
+
+### Ingestion Flow
+
+```text
+scripts/ingest_kb.py
+        |
+        v
+Load markdown sources (data/kb_md/*.md)
+        |
+        v
+Clear existing JSON artifacts (data/kb_json/*.json)
+        |
+        v
+Extract Q&A per markdown source (extraction agent)
+        |
+        v
+Write per-source JSON files (data/kb_json/*.json)
+        |
+        v
+Load generated Q&A JSON documents
+        |
+        v
+Convert each Q&A into LangChain Document
+        |
+        v
+Add documents to Qdrant collection
+        |
+        v
+Print summary counts (generated files + ingested docs)
+```
+
+This flow is executed by `run_full_ingestion()` and performs extraction plus vector ingestion in one command.
 
 ### Sample Knowledge Base
 
@@ -132,6 +168,58 @@ curl -X POST "http://localhost:8000/chat" \
 - `confidence_score`: Confidence level (0.0-1.0) from the classification agent
 - `escalate`: Boolean flag from the classification agent
 - `sources`: List of knowledge base files used for the answer
+
+### Streaming Endpoint (SSE)
+
+Use SSE if you want token-by-token output over HTTP:
+
+```bash
+curl -N -X POST "http://localhost:8000/chat/stream" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What are your service plans?",
+    "session_id": "user-123-session-456",
+    "conversation_history": []
+  }'
+```
+
+Example SSE events:
+
+```text
+data: {"type":"token","content":"We"}
+
+data: {"type":"token","content":" offer"}
+
+data: {"type":"end","reply":"We offer...","confidence_score":0.9,"escalate":false,"sources":["service_plans.json"]}
+```
+
+### WebSocket Endpoint
+
+Use WebSocket for bidirectional streaming (send message/cancel while connected):
+
+```bash
+wscat -c ws://localhost:8000/chat/stream/ws
+```
+
+Send a message:
+
+```json
+{"type":"message","message":"Halo","session_id":"test123","conversation_history":[]}
+```
+
+Optional cancel event:
+
+```json
+{"type":"cancel"}
+```
+
+Example events from server:
+
+```json
+{"type":"token","content":"Hello"}
+{"type":"token","content":"!"}
+{"type":"end","reply":"Hello! How can I assist you today with your MyTelco services?","confidence_score":0.9,"escalate":false,"sources":null}
+```
 
 ## Q1 "What to Explain" Mapping
 
