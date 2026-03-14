@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "telco"
-version = "0.1.6"
+version = "0.1.7"
 description = "Telco Customer Service AI Agent"
 authors = ["AI Engineer"]
 readme = "README.md"
