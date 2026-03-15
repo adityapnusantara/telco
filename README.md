@@ -2,6 +2,8 @@
 
 AI-powered customer service agent for a telecommunications company, built with FastAPI, LangChain, OpenAI GPT-4o, Qdrant, and Langfuse.
 
+> **Disclaimer:** This project setup assumes Conda is already installed on your device.
+
 ## Features
 
 - 🤖 RAG-powered chatbot using Q&A knowledge base
@@ -24,8 +26,8 @@ AI-powered customer service agent for a telecommunications company, built with F
 ### Installation
 
 ```bash
-# Install dependencies
-poetry install
+# Setup environment and install dependencies
+sh scripts/init.sh
 
 # Copy environment template
 cp .env.example .env
