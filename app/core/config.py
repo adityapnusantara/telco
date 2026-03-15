@@ -14,8 +14,8 @@ class Config:
 
     # Langfuse Prompt Names
     AGENT_PROMPT_NAME: str = os.getenv("AGENT_PROMPT_NAME", "telco-customer-service-agent")
-    CLASSIFICATION_SYSTEM_PROMPT_NAME: str = os.getenv("CLASSIFICATION_SYSTEM_PROMPT_NAME", "telco-customer-service-classification-user")
-    CLASSIFICATION_USER_PROMPT_NAME: str = os.getenv("CLASSIFICATION_USER_PROMPT_NAME", "telco-customer-service-classification-system")
+    CLASSIFICATION_SYSTEM_PROMPT_NAME: str = os.getenv("CLASSIFICATION_SYSTEM_PROMPT_NAME", "telco-customer-service-classification-system")
+    CLASSIFICATION_USER_PROMPT_NAME: str = os.getenv("CLASSIFICATION_USER_PROMPT_NAME", "telco-customer-service-classification-user")
     EXTRACTION_SYSTEM_PROMPT_NAME: str = os.getenv("EXTRACTION_SYSTEM_PROMPT_NAME", "telco-kb-extraction-system")
     EXTRACTION_USER_PROMPT_NAME: str = os.getenv("EXTRACTION_USER_PROMPT_NAME", "telco-kb-extraction-user")
 
