@@ -1,7 +1,5 @@
 # Part B - Evaluation & Observability
 
-Sebelum agent ini go-live dan saat sudah berjalan di production, kamu bertanggung jawab untuk mengukur apakah agent bekerja dengan baik.
-
 ## Before Launch - Evaluation Strategy
 
 Describe how you would evaluate the agent before releasing to real users:
