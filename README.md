@@ -472,7 +472,6 @@ For production, test both dimensions with your specific Q&A dataset to find the 
 1. Automatic Q&A generation: Use LLM to generate Q&A pairs from documents
 2. Hybrid search: Combine semantic + keyword search
 3. Re-ranking: Use cross-encoder for better relevance
-4. Multi-tenancy: Separate collections per customer/organization
 
 ## Project Structure
 
